@@ -13,13 +13,17 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Value("${bot.name}")
     private String name;
 
-    public TelegramBot(@Value("${bot.token}") String botToken) {
+    private final UpdateController updateController;
+
+    public TelegramBot(@Value("${bot.token}") String botToken, UpdateController updateController) {
         super(botToken);
+        this.updateController = updateController;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
         log.debug("New update received: "+update);
+        updateController.processUpdate(update);
     }
 
     @Override

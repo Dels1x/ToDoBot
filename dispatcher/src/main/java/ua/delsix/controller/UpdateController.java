@@ -1,6 +1,7 @@
 package ua.delsix.controller;
 
 import org.springframework.stereotype.Controller;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.RabbitQueue;
 import ua.delsix.service.UpdateProducer;
@@ -22,5 +23,9 @@ public class UpdateController {
         if(update.getMessage().hasText()) {
             updateProducer.produce(RabbitQueue.MESSAGE_UPDATE, update);
         }
+    }
+
+    public void setView(SendMessage sendMessage) {
+        telegramBot.sendMessage(sendMessage);
     }
 }

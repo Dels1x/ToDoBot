@@ -17,6 +17,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.version>17</maven.compiler.version>
+    <maven.target.version>17</maven.target.version>
     <telegrambots.version>6.5.0</telegrambots.version>
   </properties>
 

@@ -19,6 +19,6 @@ public class UpdateProducerImpl implements UpdateProducer {
     @Override
     public void produce(String rabbitQueue, Update update) {
         rabbitTemplate.convertAndSend(rabbitQueue, update);
-        log.debug("Sent message to RabbitMQ");
+        log.debug("DISPATCHER: Sent message to RabbitMQ");
     }
 }

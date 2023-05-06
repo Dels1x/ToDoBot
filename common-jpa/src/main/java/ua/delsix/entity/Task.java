@@ -1,4 +1,5 @@
 package ua.delsix.entity;
 
-public class User {
+
+public class Task {
 }

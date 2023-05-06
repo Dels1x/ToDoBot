@@ -13,6 +13,7 @@
     <module>dispatcher</module>
     <module>node</module>
     <module>common-rabbitmq</module>
+      <module>common-jpa</module>
   </modules>
 
   <properties>

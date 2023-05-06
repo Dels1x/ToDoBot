@@ -35,15 +35,20 @@ public class MainServiceImpl implements MainService {
             return;
         }
 
-        switch(userCommand) {
+        switch (userCommand) {
             case help -> {
                 answerText = """
-                                Avilable commands:
+                        Available commands:
 
-                                - not yet""";
-
-
+                        - not yet""";
             }
+            case start -> {
+                answerText = """
+                        Welcome to the delsix's Task Manager Bot!
+                        
+                        Type \"help\" to see all available commands.""";
+            }
+
             //TODO handle different commands
         }
 

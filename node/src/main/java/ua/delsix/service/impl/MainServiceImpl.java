@@ -4,6 +4,7 @@ import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import ua.delsix.repository.UserRepository;
 import ua.delsix.service.MainService;
 import ua.delsix.service.ProducerService;
 import ua.delsix.service.enums.ServiceCommand;
@@ -14,9 +15,11 @@ import ua.delsix.utils.MessageUtils;
 public class MainServiceImpl implements MainService {
 
     private final ProducerService producerService;
+    private final UserRepository userRepository;
 
-    public MainServiceImpl(ProducerService producerService) {
+    public MainServiceImpl(ProducerService producerService, UserRepository userRepository) {
         this.producerService = producerService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -27,6 +30,7 @@ public class MainServiceImpl implements MainService {
         String answerText = "";
 
         log.debug("User command: "+userCommand);
+
 
         if(userCommand == null) {
             log.trace("user commmand is null");

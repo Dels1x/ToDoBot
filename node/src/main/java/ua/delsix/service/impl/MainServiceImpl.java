@@ -28,6 +28,9 @@ public class MainServiceImpl implements MainService {
 
     @Override
     public void processMessage(Update update) {
+        if(update.hasCallbackQuery()) {
+
+        }
         String messageText = update.getMessage().getText();
         ServiceCommand userCommand = ServiceCommand.fromValue(messageText);
         String answerText = "";
@@ -55,7 +58,7 @@ public class MainServiceImpl implements MainService {
                 answerText = """
                         Welcome to the delsix's Task Manager Bot!
                         
-                        Type \"help\" to see all available commands.""";
+                        Type \"/help\" to see all available commands.""";
             }
 
             //TODO handle different commands

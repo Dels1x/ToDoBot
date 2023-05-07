@@ -20,7 +20,7 @@ public class UpdateController {
     }
 
     public void processUpdate(Update update) {
-        if(update.getMessage().hasText()) {
+        if(update.getMessage().hasText() || update.hasCallbackQuery()) {
             updateProducer.produce(RabbitQueue.MESSAGE_UPDATE, update);
         }
     }

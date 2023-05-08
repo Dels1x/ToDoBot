@@ -37,7 +37,7 @@ public class Task {
     @Column(name = "difficulty")
     private Integer difficulty;
 
-    @Column(name = "tag", nullable = false)
+    @Column(name = "tag")
     private String tag;
 
     @Column(name="parent_task")
@@ -52,7 +52,6 @@ public class Task {
     @Column(name = "completion_date")
     private LocalDate completionDate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", insertable = false, updatable = false)
-    private User user;
+    @Column(name = "state")
+    private String state;
 }

@@ -5,46 +5,40 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.entity.User;
-import ua.delsix.repository.UserRepository;
 import ua.delsix.service.MainService;
 import ua.delsix.service.ProducerService;
+import ua.delsix.service.TaskService;
 import ua.delsix.service.enums.ServiceCommand;
 import ua.delsix.utils.MessageUtils;
-
-import java.time.LocalDate;
-import java.util.Optional;
+import ua.delsix.utils.UserUtils;
 
 @Service
 @Log4j
 public class MainServiceImpl implements MainService {
 
     private final ProducerService producerService;
-    private final UserRepository userRepository;
+    private final TaskService taskService;
+    private final UserUtils userUtils;
 
-    public MainServiceImpl(ProducerService producerService, UserRepository userRepository) {
+    public MainServiceImpl(ProducerService producerService, TaskService taskService, UserUtils userUtils) {
         this.producerService = producerService;
-        this.userRepository = userRepository;
+        this.taskService = taskService;
+        this.userUtils = userUtils;
     }
 
     @Override
     public void processMessage(Update update) {
-        if(update.hasCallbackQuery()) {
-
-        }
         String messageText = update.getMessage().getText();
         ServiceCommand userCommand = ServiceCommand.fromValue(messageText);
         String answerText = "";
 
-        log.debug("User command: "+userCommand);
+        log.debug("User command: " + userCommand);
 
-        User user = getUserByTag(update);
-        log.trace("User: "+user.toString());
+        User user = userUtils.getUserByTag(update);
+        log.trace("User: " + user.toString());
 
-        if(userCommand == null) {
-            log.trace("user commmand is null");
-            //TODO handle if command is null
-
-            return;
+        if (userCommand == null) {
+            userCommand = ServiceCommand.nonCommand;
         }
 
         switch (userCommand) {
@@ -57,8 +51,14 @@ public class MainServiceImpl implements MainService {
             case start -> {
                 answerText = """
                         Welcome to the delsix's Task Manager Bot!
-                        
+                                                
                         Type \"/help\" to see all available commands.""";
+            }
+            case createTask -> {
+                answerText = taskService.processCreateTask(update);
+            }
+            default -> {
+                answerText = "Unknown command";
             }
 
             //TODO handle different commands
@@ -66,24 +66,5 @@ public class MainServiceImpl implements MainService {
 
         SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, answerText);
         producerService.ProduceAnswer(answerMessage);
-    }
-
-    private User getUserByTag(Update update) {
-        org.telegram.telegrambots.meta.api.objects.User tgUser = update.getMessage().getFrom();
-        String userTag = tgUser.getUserName();
-        Optional<User> user = userRepository.findByTag(userTag);
-
-        if(user.isPresent()) {
-            return user.get();
-        } else {
-            User newUser = User.builder()
-                    .name(tgUser.getFirstName())
-                    .taskCount(0)
-                    .taskCompleted(0)
-                    .createdAt(LocalDate.now())
-                    .tag(userTag)
-                    .build();
-            return userRepository.save(newUser);
-        }
     }
 }

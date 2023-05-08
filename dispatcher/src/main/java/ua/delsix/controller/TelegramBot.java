@@ -67,6 +67,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.warn("Attempted to send a null message");
             return;
         }
+        log.trace("SendMessage: "+message);
+
         try {
             if(message.getReplyMarkup() instanceof ReplyKeyboardMarkup) {
                 log.debug("Message already has reply keyboard");

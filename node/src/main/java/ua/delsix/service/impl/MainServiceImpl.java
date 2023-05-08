@@ -37,7 +37,7 @@ public class MainServiceImpl implements MainService {
         String messageText = update.getMessage().getText();
         ServiceCommand userCommand = ServiceCommand.fromValue(messageText);
         String answerText = "";
-
+        SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, "");
         log.debug("User command: " + userCommand);
 
         User user = userUtils.getUserByTag(update);
@@ -61,12 +61,13 @@ public class MainServiceImpl implements MainService {
                         Type \"/help\" to see all available commands.""";
             }
             case createTask -> {
-                answerText = taskService.processCreateTask(update);
+                answerMessage = taskService.processCreateTask(update, answerMessage);
             }
             case cancel -> {
                 //TODO provide logic for cancelling different command, you need to check last user's task's state
             }
             default -> {
+                answerMessage.setText(answerText);
                 // get task to determine what user tries to achieve by user's last task's state
                 Optional<Task> lastTask = taskRepository.findTopByUserIdOrderByIdDesc(userUtils.getUserByTag(update).getId());
                 if(lastTask.isPresent()) {
@@ -75,20 +76,21 @@ public class MainServiceImpl implements MainService {
 
                     // process further creation/editing of a task in TaskService
                     if(taskState.startsWith("CREAT")) {
-                        answerText = taskService.processCreatingTask(update);
+                        answerMessage = taskService.processCreatingTask(update, answerMessage);
                     } else if(taskState.startsWith("EDIT")) {
-                        answerText = taskService.processEditingTask(update);
+                        answerMessage = taskService.processEditingTask(update, answerMessage);
                     } else {
                         answerText = "Unknown command";
+                        answerMessage.setText(answerText);
                     }
                 } else {
                     log.trace("User doesn't have any tasks");
                     answerText = "Unknown command";
+                    answerMessage.setText(answerText);
                 }
             }
         }
 
-        SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, answerText);
         producerService.ProduceAnswer(answerMessage);
     }
 }

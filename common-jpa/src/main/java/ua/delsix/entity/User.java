@@ -24,6 +24,9 @@ public class User {
     @Column(name = "tag", nullable = false)
     private String tag;
 
+    @Column(name = "telegram_id", nullable = false)
+    private Long telegramId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDate createdAt;
 

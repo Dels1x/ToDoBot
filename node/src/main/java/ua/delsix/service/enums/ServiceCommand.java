@@ -1,14 +1,16 @@
 package ua.delsix.service.enums;
 
 public enum ServiceCommand {
-    nonCommand(""),
-    start("/start"),
-    help("/help"),
-    cancel("Cancel"),
-    tasks("Tasks"),
-    createTask("Create task"),
-    removeTask("Remove task"),
-    editTask("Edit task");
+    NON_COMMAND(""),
+    START("/start"),
+    HELP("/help"),
+    CANCEL("Cancel"),
+    SKIP("Skip"),
+    FINISH("Finish"),
+    TASKS("Tasks"),
+    CREATE_TASK("Create task"),
+    REMOVE_TASK("Remove task"),
+    EDIT_TASK("Edit task");
 
     private final String value;
 
@@ -31,6 +33,6 @@ public enum ServiceCommand {
                 return command;
         }
 
-        return null;
+        return NON_COMMAND;
     }
 }

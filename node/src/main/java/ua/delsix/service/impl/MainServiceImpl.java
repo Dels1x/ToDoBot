@@ -43,30 +43,27 @@ public class MainServiceImpl implements MainService {
         log.trace("User: " + user.toString());
 
         if (userCommand == null) {
-            userCommand = ServiceCommand.nonCommand;
+            userCommand = ServiceCommand.NON_COMMAND;
         }
 
         log.debug("User command: " + userCommand);
         switch (userCommand) {
-            case help -> {
+            case HELP -> {
                 answerText = """
                         Available commands:
 
                         - not yet""";
                 answerMessage.setText(answerText);
             }
-            case start -> {
+            case START -> {
                 answerText = """
                         Welcome to the delsix's Task Manager Bot!
                                                 
                         Type \"/help\" to see all available commands.""";
                 answerMessage.setText(answerText);
             }
-            case createTask -> {
+            case CREATE_TASK -> {
                 answerMessage = taskService.processCreateTask(update, answerMessage);
-            }
-            case cancel -> {
-                //TODO provide logic for cancelling different command, you need to check last user's task's state
             }
             default -> {
                 answerMessage.setText(answerText);

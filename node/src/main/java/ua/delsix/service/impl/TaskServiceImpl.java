@@ -10,6 +10,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import ua.delsix.entity.Task;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.service.TaskService;
+import ua.delsix.service.enums.ServiceCommand;
+import ua.delsix.utils.TaskUtils;
 import ua.delsix.utils.UserUtils;
 
 import java.time.LocalDate;
@@ -60,8 +62,21 @@ public class TaskServiceImpl implements TaskService {
             return answerMessage;
         }
         Message userMessage = update.getMessage();
+        ServiceCommand userCommand = ServiceCommand.fromValue(userMessage.getText());
         Task task = taskOptional.get();
         String taskState = task.getState();
+
+        if(userCommand.equals(ServiceCommand.CANCEL)) {
+            taskRepository.deleteById(task.getId());
+            answerMessage.setText("Creation of the task was successfully cancelled.");
+            return answerMessage;
+        } else if(userCommand.equals(ServiceCommand.SKIP)) {
+            int stateId = TaskUtils.states.indexOf(taskState);
+            taskState = TaskUtils.states.get(stateId + 1);
+            task.setState(taskState);
+        } else if(userCommand.equals(ServiceCommand.FINISH)) {
+            return completedTaskAnswer(answerMessage, task);
+        }
 
         // handling different task's states
         switch (taskState) {
@@ -206,28 +221,8 @@ public class TaskServiceImpl implements TaskService {
                 if(!userMessage.hasText()) {
                     answerMessage.setText("Please, send a text for the tag of your task");
                 }
-
                 task.setTag(userMessage.getText());
-                task.setState("COMPLETED");
-                taskRepository.save(task);
-                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                answerMessage.setReplyMarkup(markup);
-                answerMessage.setText(String.format("""
-                        Your task is successfully created!
-                        
-                        If there is need, you can also create subtasks for this task using this task's id (%d)
-                        
-                        This is how your task looks like:
-                        #%d - %s
-                         %s
-                        Tag: %s | Priority: %d | Difficulty: %d | Due %s
-                        Current state: %s""",
-                        task.getId(),
-                        task.getId(), task.getName(),
-                        task.getDescription(),
-                        task.getTag(), task.getPriority(), task.getDifficulty(), task.getTargetDate().toString(),
-                        task.getStatus()));
-                //TODO use TaskUtils taskToString() for creating answer message text
+                return completedTaskAnswer(answerMessage, task);
             }
         }
 
@@ -238,6 +233,32 @@ public class TaskServiceImpl implements TaskService {
     public SendMessage processEditingTask(Update update, SendMessage answerMessage) {
 
         return null;
+    }
+
+    private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task) {
+        task.setState(TaskUtils.states.get(TaskUtils.states.size() - 1));
+        taskRepository.save(task);
+
+        ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+        answerMessage.setReplyMarkup(markup);
+        answerMessage.setText(String.format("""
+                        Your task is successfully created!
+                        
+                        If there is need, you can also create subtasks for this task using this task's id (%d)
+                        
+                        This is how your task looks like:
+                        #%d - %s
+                         %s
+                        Tag: %s | Priority: %d | Difficulty: %d | Due %s
+                        Current state: %s""",
+                task.getId(),
+                task.getId(), task.getName(),
+                task.getDescription(),
+                task.getTag(), task.getPriority(), task.getDifficulty(), task.getTargetDate().toString(),
+                task.getStatus()));
+        //TODO use TaskUtils taskToString() for creating answer message text
+
+        return answerMessage;
     }
 
     private ReplyKeyboardMarkup getCancelSkipFinishMarkup() {

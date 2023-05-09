@@ -19,6 +19,7 @@ public class UserUtils {
     public User getUserByTag(Update update) {
         org.telegram.telegrambots.meta.api.objects.User tgUser = update.getMessage().getFrom();
         String userTag = tgUser.getUserName();
+        Long userId = tgUser.getId();
         Optional<User> user = userRepository.findByTag(userTag);
 
         if(user.isPresent()) {
@@ -30,6 +31,7 @@ public class UserUtils {
                     .taskCompleted(0)
                     .createdAt(LocalDate.now())
                     .tag(userTag)
+                    .telegramId(userId)
                     .build();
             return userRepository.save(newUser);
         }

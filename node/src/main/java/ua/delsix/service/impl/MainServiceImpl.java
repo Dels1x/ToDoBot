@@ -38,7 +38,6 @@ public class MainServiceImpl implements MainService {
         ServiceCommand userCommand = ServiceCommand.fromValue(messageText);
         String answerText = "";
         SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, "");
-        log.debug("User command: " + userCommand);
 
         User user = userUtils.getUserByTag(update);
         log.trace("User: " + user.toString());
@@ -47,18 +46,21 @@ public class MainServiceImpl implements MainService {
             userCommand = ServiceCommand.nonCommand;
         }
 
+        log.debug("User command: " + userCommand);
         switch (userCommand) {
             case help -> {
                 answerText = """
                         Available commands:
 
                         - not yet""";
+                answerMessage.setText(answerText);
             }
             case start -> {
                 answerText = """
                         Welcome to the delsix's Task Manager Bot!
                                                 
                         Type \"/help\" to see all available commands.""";
+                answerMessage.setText(answerText);
             }
             case createTask -> {
                 answerMessage = taskService.processCreateTask(update, answerMessage);

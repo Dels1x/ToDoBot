@@ -13,6 +13,8 @@ import ua.delsix.service.TaskService;
 import ua.delsix.utils.UserUtils;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -74,11 +76,7 @@ public class TaskServiceImpl implements TaskService {
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
                 answerMessage.setText("""
-                        Now let's create a description for your task, if you want to.
-
-                         If you don't need one - simply press the skip button
-                         
-                         Once you done with creating the task - just press finish button""");
+                        Now let's create a description for your task, if you want to.""");
 
 
             }
@@ -95,111 +93,141 @@ public class TaskServiceImpl implements TaskService {
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
                 answerMessage.setText("""
-                        Now let's set a priority for your task - a number in range of 1-6.
+                        We can also set a priority for your task - a number in range of 1-6.
 
-                         If you don't want task to have a priority - press the skip button or type in 0.
-                         
-                         Once you done with creating the task - just press finish button""");
+                        If you don't want task to have a priority - press the skip button or type in "0".""");
             }
             case "CREATING_PRIORITY" -> {
-                //TODO
-
                 // checking if user's message has text, since he can send a picture of document
                 if(!userMessage.hasText()) {
                     answerMessage.setText("Please, send a number for the priority of your task");
                 }
 
-                task.setDescription(userMessage.getText());
+                int number;
+
+                // Verifying that user's response is a number
+                try {
+                    number = Integer.parseInt(userMessage.getText());
+                } catch (NumberFormatException e ) {
+                    answerMessage.setText("Please, write a number from 1 to 6 for the priority.");
+                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+                    answerMessage.setReplyMarkup(markup);
+                    return answerMessage;
+                }
+
+                // Check if the number is within the allowed range of 1 to 6
+                if (number >= 1 && number <= 6) {
+                    // Set the task priority to the user-provided number
+                    task.setPriority(number);
+                } else if (number == 0) {
+                    // Do nothing, since the user provided 0 as the priority
+                } else {
+                    // Inform the user that the priority must be within the allowed range of 1 to 6
+                    answerMessage.setText("Allowed range for priority is 1-6.");
+                    // Set the reply markup to include the "Cancel", "Skip", and "Finish" buttons
+                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+                    answerMessage.setReplyMarkup(markup);
+                    return answerMessage;
+                }
+
                 task.setState("CREATING_DATE");
                 taskRepository.save(task);
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
                 answerMessage.setText("""
-                        Now let's set a priority for your task - a number in range of 1-6.
-
-                         If you don't want task to have a priority - press the skip button or type in 0.
-                         
-                         Once you done with creating the task - just press finish button""");
+                        You can set a target completion date or a deadline for your task using the format "dd.MM.yyyy" (e.g. "30.04.2023")""");
             }
             case "CREATING_DATE" -> {
-                //TODO
-
                 // checking if user's message has text, since he can send a picture of document
                 if(!userMessage.hasText()) {
-                    answerMessage.setText("Please, send a text for the description of your task");
+                    answerMessage.setText("Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\".");
+                }
+                LocalDate date;
+                // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
+                try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+                    date = LocalDate.parse(userMessage.getText(), formatter);
+                } catch (DateTimeParseException e) {
+                    answerMessage.setText("Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\"");
+                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+                    answerMessage.setReplyMarkup(markup);
+                    return answerMessage;
                 }
 
-                task.setDescription(userMessage.getText());
+                task.setTargetDate(date);
                 task.setState("CREATING_DIFFICULTY");
                 taskRepository.save(task);
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
                 answerMessage.setText("""
-                        Now let's set a priority for your task - a number in range of 1-6.
-
-                         If you don't want task to have a priority - press the skip button or type in 0.
-                         
-                         Once you done with creating the task - just press finish button""");
+                        If you want to set a specific difficulty for your task - we can also do that.
+                        a number in range of 0-7. (0 - No difficulty; 1 - Very easy; 2 - Easy; 3 - Moderate; 4 - Challenging; 5 - Difficult; 6 - Very Difficult; 7 - Extremely difficult)""");
             }
             case "CREATING_DIFFICULTY" -> {
-                //TODO
-
                 // checking if user's message has text, since he can send a picture of document
                 if(!userMessage.hasText()) {
-                    answerMessage.setText("Please, send a text for the description of your task");
+                    answerMessage.setText("Please, send a number in range of 0 to 7 for the difficulty.");
                 }
 
-                task.setDescription(userMessage.getText());
+                int number;
+
+                // Verifying that user's response is a number
+                try {
+                    number = Integer.parseInt(userMessage.getText());
+                } catch (NumberFormatException e ) {
+                    answerMessage.setText("Please, send a number in range of 0 to 7 for the difficulty.");
+                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+                    answerMessage.setReplyMarkup(markup);
+                    return answerMessage;
+                }
+
+                // Check if the number is within the allowed range of 0 to 7
+                if (number >= 0 && number <= 7) {
+                    // Set the task difficulty to the user-provided number
+                    task.setDifficulty(number);
+                } else {
+                    // Inform the user that the priority must be within the allowed range of 0 to 7
+                    answerMessage.setText("Allowed range for difficulty is 0-7.");
+                    // Set the reply markup to include the "Cancel", "Skip", and "Finish" buttons
+                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+                    answerMessage.setReplyMarkup(markup);
+                    return answerMessage;
+                }
+
                 task.setState("CREATING_TAG");
                 taskRepository.save(task);
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
                 answerMessage.setText("""
-                        Now let's set a priority for your task - a number in range of 1-6.
-
-                         If you don't want task to have a priority - press the skip button or type in 0.
-                         
-                         Once you done with creating the task - just press finish button""");
+                        If you want to - you can set a specific tag for the task. It could be something like: (Goals, Programming, Chores etc.).""");
             }
             case "CREATING_TAG" -> {
-                //TODO
-
                 // checking if user's message has text, since he can send a picture of document
                 if(!userMessage.hasText()) {
-                    answerMessage.setText("Please, send a text for the description of your task");
+                    answerMessage.setText("Please, send a text for the tag of your task");
                 }
 
-                task.setDescription(userMessage.getText());
-                task.setState("CREATING_SUBTASK");
+                task.setTag(userMessage.getText());
+                task.setState("COMPLETED");
                 taskRepository.save(task);
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
-                answerMessage.setText("""
-                        Now let's set a priority for your task - a number in range of 1-6.
-
-                         If you don't want task to have a priority - press the skip button or type in 0.
-                         
-                         Once you done with creating the task - just press finish button""");
-            }
-            case "CREATING_SUBTASK" -> {
-                //TODO
-
-                // checking if user's message has text, since he can send a picture of document
-                if(!userMessage.hasText()) {
-                    answerMessage.setText("Please, send a text for the description of your task");
-                }
-
-                task.setDescription(userMessage.getText());
-                task.setState("CREATING_PRIORITY");
-                taskRepository.save(task);
-                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                answerMessage.setReplyMarkup(markup);
-                answerMessage.setText("""
-                        Now let's set a priority for your task - a number in range of 1-6.
-
-                         If you don't want task to have a priority - press the skip button or type in 0.
-                         
-                         Once you done with creating the task - just press finish button""");
+                answerMessage.setText(String.format("""
+                        Your task is successfully created!
+                        
+                        If there is need, you can also create subtasks for this task using this task's id (%d)
+                        
+                        This is how your task looks like:
+                        #%d - %s
+                         %s
+                        Tag: %s | Priority: %d | Difficulty: %d | Due %s
+                        Current state: %s""",
+                        task.getId(),
+                        task.getId(), task.getName(),
+                        task.getDescription(),
+                        task.getTag(), task.getPriority(), task.getDifficulty(), task.getTargetDate().toString(),
+                        task.getStatus()));
+                //TODO use TaskUtils taskToString() for creating answer message text
             }
         }
 

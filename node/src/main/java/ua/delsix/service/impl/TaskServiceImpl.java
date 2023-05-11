@@ -71,10 +71,12 @@ public class TaskServiceImpl implements TaskService {
             answerMessage.setText("Creation of the task was successfully cancelled.");
             return answerMessage;
         } else if(userCommand.equals(ServiceCommand.SKIP)) {
+            //TODO needs a bugfix
             int stateId = TaskUtils.states.indexOf(taskState);
             taskState = TaskUtils.states.get(stateId + 1);
             task.setState(taskState);
         } else if(userCommand.equals(ServiceCommand.FINISH)) {
+            //TODO needs a bugfix
             return completedTaskAnswer(answerMessage, task);
         }
 
@@ -258,6 +260,7 @@ public class TaskServiceImpl implements TaskService {
                 task.getStatus()));
         //TODO use TaskUtils taskToString() for creating answer message text
 
+        log.trace("answerMessage: "+answerMessage);
         return answerMessage;
     }
 

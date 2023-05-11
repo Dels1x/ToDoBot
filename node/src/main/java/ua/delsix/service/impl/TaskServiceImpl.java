@@ -26,10 +26,12 @@ import java.util.Optional;
 public class TaskServiceImpl implements TaskService {
     private final UserUtils userUtils;
     private final TaskRepository taskRepository;
+    private final TaskUtils taskUtils;
 
-    public TaskServiceImpl(UserUtils userUtils, TaskRepository taskRepository) {
+    public TaskServiceImpl(UserUtils userUtils, TaskRepository taskRepository, TaskUtils taskUtils) {
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
+        this.taskUtils = taskUtils;
     }
 
     @Override
@@ -39,6 +41,7 @@ public class TaskServiceImpl implements TaskService {
                 .userId(userUtils.getUserByTag(update).getId())
                 .name("Unnamed " + (taskRepository.count()+1))
                 .state("CREATING_NAME")
+                .status("Uncompleted")
                 .createdAt(LocalDate.now())
                 .build();
 
@@ -66,6 +69,10 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskOptional.get();
         String taskState = task.getState();
 
+        answerMessage.setText(taskUtils.responseForEachState(task));
+
+        log.trace("task state - "+taskState);
+
         if(userCommand.equals(ServiceCommand.CANCEL)) {
             taskRepository.deleteById(task.getId());
             answerMessage.setText("Creation of the task was successfully cancelled.");
@@ -74,28 +81,35 @@ public class TaskServiceImpl implements TaskService {
             //TODO needs a bugfix
             int stateId = TaskUtils.states.indexOf(taskState);
             taskState = TaskUtils.states.get(stateId + 1);
+            System.out.println(stateId);
             task.setState(taskState);
+            taskRepository.save(task);
         } else if(userCommand.equals(ServiceCommand.FINISH)) {
             //TODO needs a bugfix
+            task.setState("COMPLETED");
+            taskRepository.save(task);
             return completedTaskAnswer(answerMessage, task);
         }
 
         // handling different task's states
         switch (taskState) {
             case "CREATING_NAME" -> {
+                task.setState("CREATING_DESCRIPTION");
+                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+                answerMessage.setReplyMarkup(markup);
+
+                // return if it's a skip, while maintaining the values
+                if (userCommand.equals(ServiceCommand.SKIP)) {
+                    taskRepository.save(task);
+                    return answerMessage;
+                }
+
                 // checking if user's message has text, since he can send a picture of document
                 if(!userMessage.hasText()) {
                     answerMessage.setText("Please, send a text for the name of your task");
                 }
                 task.setName(userMessage.getText());
-                task.setState("CREATING_DESCRIPTION");
                 taskRepository.save(task);
-                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                answerMessage.setReplyMarkup(markup);
-                answerMessage.setText("""
-                        Now let's create a description for your task, if you want to.""");
-
-
             }
             case "CREATING_DESCRIPTION" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -109,10 +123,6 @@ public class TaskServiceImpl implements TaskService {
                 taskRepository.save(task);
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
-                answerMessage.setText("""
-                        We can also set a priority for your task - a number in range of 1-6.
-
-                        If you don't want task to have a priority - press the skip button or type in "0".""");
             }
             case "CREATING_PRIORITY" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -151,8 +161,6 @@ public class TaskServiceImpl implements TaskService {
                 taskRepository.save(task);
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
-                answerMessage.setText("""
-                        You can set a target completion date or a deadline for your task using the format "dd.MM.yyyy" (e.g. "30.04.2023")""");
             }
             case "CREATING_DATE" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -176,9 +184,6 @@ public class TaskServiceImpl implements TaskService {
                 taskRepository.save(task);
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
-                answerMessage.setText("""
-                        If you want to set a specific difficulty for your task - we can also do that.
-                        a number in range of 0-7. (0 - No difficulty; 1 - Very easy; 2 - Easy; 3 - Moderate; 4 - Challenging; 5 - Difficult; 6 - Very Difficult; 7 - Extremely difficult)""");
             }
             case "CREATING_DIFFICULTY" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -215,8 +220,6 @@ public class TaskServiceImpl implements TaskService {
                 taskRepository.save(task);
                 ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
                 answerMessage.setReplyMarkup(markup);
-                answerMessage.setText("""
-                        If you want to - you can set a specific tag for the task. It could be something like: (Goals, Programming, Chores etc.).""");
             }
             case "CREATING_TAG" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -224,6 +227,8 @@ public class TaskServiceImpl implements TaskService {
                     answerMessage.setText("Please, send a text for the tag of your task");
                 }
                 task.setTag(userMessage.getText());
+                task.setState("COMPLETED");
+                taskRepository.save(task);
                 return completedTaskAnswer(answerMessage, task);
             }
         }
@@ -238,29 +243,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task) {
-        task.setState(TaskUtils.states.get(TaskUtils.states.size() - 1));
-        taskRepository.save(task);
-
         ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
         answerMessage.setReplyMarkup(markup);
-        answerMessage.setText(String.format("""
-                        Your task is successfully created!
-                        
-                        If there is need, you can also create subtasks for this task using this task's id (%d)
-                        
-                        This is how your task looks like:
-                        #%d - %s
-                         %s
-                        Tag: %s | Priority: %d | Difficulty: %d | Due %s
-                        Current state: %s""",
-                task.getId(),
-                task.getId(), task.getName(),
-                task.getDescription(),
-                task.getTag(), task.getPriority(), task.getDifficulty(), task.getTargetDate().toString(),
-                task.getStatus()));
-        //TODO use TaskUtils taskToString() for creating answer message text
+        answerMessage.setText(taskUtils.responseForEachState(task));
 
-        log.trace("answerMessage: "+answerMessage);
         return answerMessage;
     }
 

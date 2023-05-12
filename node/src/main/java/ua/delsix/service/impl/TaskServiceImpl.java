@@ -250,6 +250,19 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public SendMessage processEditingTask(Update update, SendMessage answerMessage) {
+        //TODO
+
+        return null;
+    }
+
+    @Override
+    public SendMessage processGetAllTasks(Update update, SendMessage answerMessage) {
+        return null;
+    }
+
+    @Override
+    public SendMessage processDeleteTask(Update update, SendMessage answerMessage) {
+        //TODO
 
         return null;
     }

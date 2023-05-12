@@ -6,19 +6,17 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import ua.delsix.entity.Task;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.service.TaskService;
 import ua.delsix.service.enums.ServiceCommand;
+import ua.delsix.utils.MarkupUtils;
 import ua.delsix.utils.TaskUtils;
 import ua.delsix.utils.UserUtils;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -48,7 +46,7 @@ public class TaskServiceImpl implements TaskService {
         // saving the task to the table
         taskRepository.save(newTask);
 
-        ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+        ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
         answerMessage.setReplyMarkup(markup);
         answerMessage.setText("Alright, a new task. To proceed, let's choose a name for the task first.");
 
@@ -70,20 +68,26 @@ public class TaskServiceImpl implements TaskService {
         String taskState = task.getState();
 
         answerMessage.setText(taskUtils.responseForEachState(task));
+        ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
+        answerMessage.setReplyMarkup(markup);
 
-        log.trace("task state - "+taskState);
+        log.trace("Task: "+task);
 
         if(userCommand.equals(ServiceCommand.CANCEL)) {
             taskRepository.deleteById(task.getId());
             answerMessage.setText("Creation of the task was successfully cancelled.");
             return answerMessage;
         } else if(userCommand.equals(ServiceCommand.SKIP)) {
-            //TODO needs a bugfix
             int stateId = TaskUtils.states.indexOf(taskState);
             taskState = TaskUtils.states.get(stateId + 1);
-            System.out.println(stateId);
             task.setState(taskState);
             taskRepository.save(task);
+
+            if (taskState.equals("COMPLETED")) {
+                answerMessage.setReplyMarkup(null);
+            }
+
+            return answerMessage;
         } else if(userCommand.equals(ServiceCommand.FINISH)) {
             //TODO needs a bugfix
             task.setState("COMPLETED");
@@ -95,14 +99,6 @@ public class TaskServiceImpl implements TaskService {
         switch (taskState) {
             case "CREATING_NAME" -> {
                 task.setState("CREATING_DESCRIPTION");
-                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                answerMessage.setReplyMarkup(markup);
-
-                // return if it's a skip, while maintaining the values
-                if (userCommand.equals(ServiceCommand.SKIP)) {
-                    taskRepository.save(task);
-                    return answerMessage;
-                }
 
                 // checking if user's message has text, since he can send a picture of document
                 if(!userMessage.hasText()) {
@@ -121,8 +117,6 @@ public class TaskServiceImpl implements TaskService {
                 task.setDescription(userMessage.getText());
                 task.setState("CREATING_PRIORITY");
                 taskRepository.save(task);
-                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                answerMessage.setReplyMarkup(markup);
             }
             case "CREATING_PRIORITY" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -137,8 +131,6 @@ public class TaskServiceImpl implements TaskService {
                     number = Integer.parseInt(userMessage.getText());
                 } catch (NumberFormatException e ) {
                     answerMessage.setText("Please, write a number from 1 to 6 for the priority.");
-                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                    answerMessage.setReplyMarkup(markup);
                     return answerMessage;
                 }
 
@@ -152,15 +144,11 @@ public class TaskServiceImpl implements TaskService {
                     // Inform the user that the priority must be within the allowed range of 1 to 6
                     answerMessage.setText("Allowed range for priority is 1-6.");
                     // Set the reply markup to include the "Cancel", "Skip", and "Finish" buttons
-                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                    answerMessage.setReplyMarkup(markup);
                     return answerMessage;
                 }
 
                 task.setState("CREATING_DATE");
                 taskRepository.save(task);
-                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                answerMessage.setReplyMarkup(markup);
             }
             case "CREATING_DATE" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -174,16 +162,12 @@ public class TaskServiceImpl implements TaskService {
                     date = LocalDate.parse(userMessage.getText(), formatter);
                 } catch (DateTimeParseException e) {
                     answerMessage.setText("Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\"");
-                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                    answerMessage.setReplyMarkup(markup);
                     return answerMessage;
                 }
 
                 task.setTargetDate(date);
                 task.setState("CREATING_DIFFICULTY");
                 taskRepository.save(task);
-                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                answerMessage.setReplyMarkup(markup);
             }
             case "CREATING_DIFFICULTY" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -198,8 +182,6 @@ public class TaskServiceImpl implements TaskService {
                     number = Integer.parseInt(userMessage.getText());
                 } catch (NumberFormatException e ) {
                     answerMessage.setText("Please, send a number in range of 0 to 7 for the difficulty.");
-                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                    answerMessage.setReplyMarkup(markup);
                     return answerMessage;
                 }
 
@@ -211,15 +193,11 @@ public class TaskServiceImpl implements TaskService {
                     // Inform the user that the priority must be within the allowed range of 0 to 7
                     answerMessage.setText("Allowed range for difficulty is 0-7.");
                     // Set the reply markup to include the "Cancel", "Skip", and "Finish" buttons
-                    ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                    answerMessage.setReplyMarkup(markup);
                     return answerMessage;
                 }
 
                 task.setState("CREATING_TAG");
                 taskRepository.save(task);
-                ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
-                answerMessage.setReplyMarkup(markup);
             }
             case "CREATING_TAG" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -243,33 +221,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task) {
-        ReplyKeyboardMarkup markup = getCancelSkipFinishMarkup();
+        ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
         answerMessage.setReplyMarkup(markup);
         answerMessage.setText(taskUtils.responseForEachState(task));
 
         return answerMessage;
-    }
-
-    private ReplyKeyboardMarkup getCancelSkipFinishMarkup() {
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add("Skip");
-        row1.add("Cancel");
-        row1.add("Finish");
-        keyboard.add(row1);
-        markup.setKeyboard(keyboard);
-        return markup;
-    }
-
-    private ReplyKeyboardMarkup getCancelFinishMarkup() {
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add("Cancel");
-        row1.add("Finish");
-        keyboard.add(row1);
-        markup.setKeyboard(keyboard);
-        return markup;
     }
 }

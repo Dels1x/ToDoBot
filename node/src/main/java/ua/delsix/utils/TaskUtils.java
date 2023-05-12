@@ -30,6 +30,22 @@ public class TaskUtils {
         };
     }
 
+    public String getPriorityDescription(Integer priority) {
+        if(priority == null) {
+            return "Not specified";
+        }
+
+        return switch (priority) {
+            case 1 -> "Not important";
+            case 2 -> "Low";
+            case 3 -> "Medium";
+            case 4 -> "High";
+            case 5 -> "Very high";
+            case 6 -> "Urgent";
+            default -> "Not specified";
+        };
+    }
+
     public String taskToString(Task task) {
         //TODO
         return "";
@@ -51,7 +67,7 @@ public class TaskUtils {
                 task.getName() == null ? "Unnamed" : task.getName(),
                 task.getDescription() == null ? "No description" : task.getDescription(),
                 task.getTargetDate() == null ? "No date specified" : task.getTargetDate().toString(),
-                task.getPriority() == null ? "No priority" : task.getPriority().toString(),
+                getPriorityDescription(task.getPriority()),
                 getDifficultyDescription(task.getDifficulty()),
                 task.getTag() == null ? "Untagged" :  task.getTag(),
                 task.getStatus() == null ? "Uncompleted" : task.getStatus(),

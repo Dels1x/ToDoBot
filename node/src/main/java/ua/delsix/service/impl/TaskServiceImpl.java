@@ -7,7 +7,9 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import ua.delsix.entity.Task;
+import ua.delsix.entity.User;
 import ua.delsix.repository.TaskRepository;
+import ua.delsix.repository.UserRepository;
 import ua.delsix.service.TaskService;
 import ua.delsix.service.enums.ServiceCommand;
 import ua.delsix.utils.MarkupUtils;
@@ -24,11 +26,13 @@ import java.util.Optional;
 public class TaskServiceImpl implements TaskService {
     private final UserUtils userUtils;
     private final TaskRepository taskRepository;
+    private final UserRepository userRepository;
     private final TaskUtils taskUtils;
 
-    public TaskServiceImpl(UserUtils userUtils, TaskRepository taskRepository, TaskUtils taskUtils) {
+    public TaskServiceImpl(UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils) {
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
+        this.userRepository = userRepository;
         this.taskUtils = taskUtils;
     }
 
@@ -42,6 +46,11 @@ public class TaskServiceImpl implements TaskService {
                 .status("Uncompleted")
                 .createdAt(LocalDate.now())
                 .build();
+
+        // add one to user's task count
+        User user = userUtils.getUserByTag(update);
+        user.setTaskCount(user.getTaskCount() + 1);
+        userRepository.save(user);
 
         // saving the task to the table
         taskRepository.save(newTask);
@@ -67,6 +76,8 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskOptional.get();
         String taskState = task.getState();
 
+        User user = userUtils.getUserByTag(update);
+
         answerMessage.setText(taskUtils.responseForEachState(task));
         ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
         answerMessage.setReplyMarkup(markup);
@@ -74,8 +85,16 @@ public class TaskServiceImpl implements TaskService {
         log.trace("Task: "+task);
 
         if(userCommand.equals(ServiceCommand.CANCEL)) {
+            // Delete task from tasks table
             taskRepository.deleteById(task.getId());
+
             answerMessage.setText("Creation of the task was successfully cancelled.");
+            answerMessage.setReplyMarkup(null);
+
+            // subtract one from user's tasks count and save it
+            user.setTaskCount(user.getTaskCount() - 1);
+            userRepository.save(user);
+
             return answerMessage;
         } else if(userCommand.equals(ServiceCommand.SKIP)) {
             int stateId = TaskUtils.states.indexOf(taskState);
@@ -89,10 +108,18 @@ public class TaskServiceImpl implements TaskService {
 
             return answerMessage;
         } else if(userCommand.equals(ServiceCommand.FINISH)) {
-            //TODO needs a bugfix
+            // set task's state to COMPLETED
             task.setState("COMPLETED");
             taskRepository.save(task);
-            return completedTaskAnswer(answerMessage, task);
+
+            // add one to user's task completed count
+            user.setTaskCompleted(user.getTaskCompleted() + 1);
+            userRepository.save(user);
+
+            // get completed task answer and set its reply markup to null and return it
+            var newAnswerMessage = completedTaskAnswer(answerMessage, task);
+            newAnswerMessage.setReplyMarkup(null);
+            return newAnswerMessage;
         }
 
         // handling different task's states
@@ -205,8 +232,15 @@ public class TaskServiceImpl implements TaskService {
                     answerMessage.setText("Please, send a text for the tag of your task");
                 }
                 task.setTag(userMessage.getText());
+
+                // set task's state to COMPLETED
                 task.setState("COMPLETED");
                 taskRepository.save(task);
+
+                // add 1 to user's completed tasks count
+                user.setTaskCompleted(user.getTaskCompleted() + 1);
+                userRepository.save(user);
+
                 return completedTaskAnswer(answerMessage, task);
             }
         }

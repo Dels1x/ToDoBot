@@ -19,15 +19,4 @@ public class MarkupUtils {
         markup.setKeyboard(keyboard);
         return markup;
     }
-
-    public static ReplyKeyboardMarkup getCancelFinishMarkup() {
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add("Cancel");
-        row1.add("Finish");
-        keyboard.add(row1);
-        markup.setKeyboard(keyboard);
-        return markup;
-    }
 }

@@ -47,8 +47,17 @@ public class TaskUtils {
     }
 
     public String taskToString(Task task) {
-        //TODO
-        return "";
+        return String.format("""
+                %s
+                - %s
+                
+                📅 %s ️⭐️️ %s ⚡️ %s #%s""",
+                task.getName() == null ? "Unnamed" : task.getName(),
+                task.getDescription() == null ? "No description" : task.getDescription(),
+                task.getTargetDate() == null ? "No date specified" : task.getTargetDate().toString(),
+                getPriorityDescription(task.getPriority()),
+                getDifficultyDescription(task.getDifficulty()),
+                task.getTag() == null ? "Untagged" :  task.getTag());
     }
 
     public String taskToStringInDetail(Task task) {

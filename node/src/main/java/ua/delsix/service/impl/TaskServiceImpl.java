@@ -19,6 +19,9 @@ import ua.delsix.utils.UserUtils;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -257,7 +260,33 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public SendMessage processGetAllTasks(Update update, SendMessage answerMessage) {
-        return null;
+        User user = userUtils.getUserByTag(update);
+        List<Task> tasks = taskRepository.findAllByUserIdOrderByTargetDateDesc(user.getId());
+        String[] pages = new String[(int) Math.ceil(tasks.size() / 8.0)];
+
+        // handle case if user doesn't have any tasks yet
+        if(tasks.size() == 0) {
+            answerMessage.setText("You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons");
+            return answerMessage;
+        }
+
+        // creating list of pages full of tasks
+        int pageNumber = -1;
+        for(int i = 0; i < tasks.size(); i++) {
+            Task task = tasks.get(i);
+
+            if(i % 8 == 0){
+                pageNumber++;
+                pages[pageNumber] = "Tasks:\n\n";
+            }
+
+            pages[pageNumber] = pages[pageNumber].concat(taskUtils.taskToString(task) + "\n\n");
+        }
+
+        log.trace("Pages: "+ Arrays.toString(pages));
+
+        answerMessage.setText(pages[0]);
+        return answerMessage;
     }
 
     @Override

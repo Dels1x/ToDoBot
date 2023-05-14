@@ -62,9 +62,8 @@ public class MainServiceImpl implements MainService {
                         Type \"/help\" to see all available commands.""";
                 answerMessage.setText(answerText);
             }
-            case CREATE_TASK -> {
-                answerMessage = taskService.processCreateTask(update, answerMessage);
-            }
+            case CREATE_TASK -> answerMessage = taskService.processCreateTask(update, answerMessage);
+            case TASKS -> answerMessage = taskService.processGetAllTasks(update, answerMessage);
             default -> {
                 answerMessage.setText(answerText);
                 // get task to determine what user tries to achieve by user's last task's state

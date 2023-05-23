@@ -3,6 +3,7 @@ package ua.delsix.service.impl;
 import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -258,6 +259,21 @@ public class TaskServiceImpl implements TaskService {
     public SendMessage processEditingTask(Update update, SendMessage answerMessage) {
         //TODO
 
+        return null;
+    }
+
+    @Override
+    public EditMessageText processGetAllTasksNext(Update update) {
+        return null;
+    }
+
+    @Override
+    public EditMessageText processGetAllTasksPrev(Update update) {
+        return null;
+    }
+
+    @Override
+    public EditMessageText processGetTaskInDetail(Update update) {
         return null;
     }
 

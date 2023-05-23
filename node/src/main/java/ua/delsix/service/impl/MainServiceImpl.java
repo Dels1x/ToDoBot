@@ -3,9 +3,9 @@ package ua.delsix.service.impl;
 import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.entity.Task;
-import ua.delsix.entity.User;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.service.MainService;
 import ua.delsix.service.ProducerService;
@@ -14,6 +14,7 @@ import ua.delsix.service.enums.ServiceCommand;
 import ua.delsix.utils.MessageUtils;
 import ua.delsix.utils.UserUtils;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 @Service
@@ -33,15 +34,49 @@ public class MainServiceImpl implements MainService {
     }
 
     @Override
-    public void processMessage(Update update) {
+    public void processUpdate(Update update) {
+        SendMessage answerMessage = null;
+        if (update.hasMessage()) {
+            answerMessage = processMessage(update);
+        } else if (update.hasCallbackQuery()) {
+            processCallbackQuery(update);
+            return;
+        } else {
+            log.error("Update has neither message nor callback query");
+        }
+
+        producerService.produceAnswer(answerMessage);
+    }
+
+    private SendMessage processMessage(Update update) {
         String messageText = update.getMessage().getText();
         ServiceCommand userCommand = ServiceCommand.fromValue(messageText);
+
+        return processUserMessage(update, userCommand);
+    }
+
+    private void processCallbackQuery(Update update) {
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+
+        log.trace("CallbackData: "+ Arrays.toString(callbackData));
+
+        // set userCommand based on callbackQuery
+        if (callbackData[0].equals("GET_ALL_TASKS")) {
+            if (callbackData[1].equals("NEXT")) {
+                taskService.processGetAllTasksNext(update);
+            } else if (callbackData[1].equals("PREV")) {
+                taskService.processGetAllTasksPrev(update);
+            } else if (callbackData[1].equals("TASK")) {
+                taskService.processGetTaskInDetail(update);
+            }
+        }
+
+    }
+
+    private SendMessage processUserMessage(Update update, ServiceCommand userCommand) {
         String answerText = "";
         SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, "");
-
-        User user = userUtils.getUserByTag(update);
-        log.trace("User: " + user.toString());
-
         if (userCommand == null) {
             userCommand = ServiceCommand.NON_COMMAND;
         }
@@ -59,7 +94,7 @@ public class MainServiceImpl implements MainService {
                 answerText = """
                         Welcome to the delsix's Task Manager Bot!
                                                 
-                        Type \"/help\" to see all available commands.""";
+                        Type "help" to see all available commands.""";
                 answerMessage.setText(answerText);
             }
             case CREATE_TASK -> answerMessage = taskService.processCreateTask(update, answerMessage);
@@ -89,6 +124,6 @@ public class MainServiceImpl implements MainService {
             }
         }
 
-        producerService.ProduceAnswer(answerMessage);
+        return answerMessage;
     }
 }

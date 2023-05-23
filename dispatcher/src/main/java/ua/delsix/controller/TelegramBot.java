@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -71,7 +72,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         log.trace("SendMessage: "+message);
 
         try {
-            if(message.getReplyMarkup() instanceof ReplyKeyboard) {
+            if(message.getReplyMarkup() != null) {
                 log.debug("Message already has reply keyboard");
             } else {
                 log.debug("Message doesn't have a markup keyboard");
@@ -82,6 +83,21 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.debug("Successfully sent the message back");
         } catch (TelegramApiException e) {
             log.error("TelegramApiException thrown when attempted to send a message: "+e.getMessage());
+        }
+    }
+
+    public void editMessage(EditMessageText message) {
+        if(message == null) {
+            log.warn("Attempted to edit a message to null");
+            return;
+        }
+        log.trace("EditMessage: "+message);
+
+        try {
+            execute(message);
+            log.debug("Successfully sent the message back");
+        } catch (TelegramApiException e) {
+            log.error("TelegramApiException thrown when attempted to edit a message: "+e.getMessage());
         }
     }
 }

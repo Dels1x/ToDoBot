@@ -21,7 +21,7 @@ public class ConsumerServiceImpl implements ConsumerService {
     @RabbitListener(queues = RabbitQueue.MESSAGE_UPDATE)
     @Override
     public void consumeMessageUpdate(Update update) {
-        log.debug("Node: MESSAGE_UPDATE received");
-        mainService.processMessage(update);
+        log.debug("Node: MESSAGE_UPDATE received: "+update.toString());
+        mainService.processUpdate(update);
     }
 }

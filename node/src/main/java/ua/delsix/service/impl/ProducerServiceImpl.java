@@ -25,8 +25,8 @@ public class ProducerServiceImpl implements ProducerService {
     }
 
     @Override
-    public void produceAnswer(EditMessageText answer) {
-        rabbitTemplate.convertAndSend(RabbitQueue.ANSWER_UPDATE, answer);
+    public void produceAnswer(EditMessageText editAnswer) {
+        rabbitTemplate.convertAndSend(RabbitQueue.EDIT_ANSWER_UPDATE, editAnswer);
         log.debug("NODE: answer message sent to RabbitMQ");
     }
 }

@@ -2,7 +2,9 @@ package ua.delsix.utils;
 
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
 @Component
 public class MessageUtils {
@@ -13,5 +15,15 @@ public class MessageUtils {
         sendMessage.setText(text);
 
         return sendMessage;
+    }
+
+    public static EditMessageText editMessageGenerator(Update update, String text) {
+        var message = update.getCallbackQuery().getMessage();
+        EditMessageText editMessage = new EditMessageText();
+        editMessage.setMessageId(message.getMessageId());
+        editMessage.setChatId(message.getChatId());
+        editMessage.setText(text);
+
+        return editMessage;
     }
 }

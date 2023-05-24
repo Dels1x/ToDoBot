@@ -3,6 +3,7 @@ package ua.delsix.service.impl;
 import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.entity.Task;
@@ -58,20 +59,22 @@ public class MainServiceImpl implements MainService {
     private void processCallbackQuery(Update update) {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
+        EditMessageText answer = MessageUtils.editMessageGenerator(update, "Unknown error. Please contact developer using his telegram (@dels1x).");
 
         log.trace("CallbackData: "+ Arrays.toString(callbackData));
 
         // set userCommand based on callbackQuery
         if (callbackData[0].equals("GET_ALL_TASKS")) {
-            if (callbackData[1].equals("NEXT")) {
-                taskService.processGetAllTasksNext(update);
-            } else if (callbackData[1].equals("PREV")) {
-                taskService.processGetAllTasksPrev(update);
-            } else if (callbackData[1].equals("TASK")) {
-                taskService.processGetTaskInDetail(update);
+            switch (callbackData[1]) {
+                case "NEXT" -> answer = taskService.processGetAllTasksNext(update);
+                case "PREV" -> answer = taskService.processGetAllTasksPrev(update);
+                case "TASK" -> answer = taskService.processGetTaskInDetail(update);
             }
         }
 
+        log.debug("answer: "+answer);
+
+        producerService.produceAnswer(answer);
     }
 
     private SendMessage processUserMessage(Update update, ServiceCommand userCommand) {

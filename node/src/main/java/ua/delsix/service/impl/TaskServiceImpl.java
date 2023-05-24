@@ -17,6 +17,7 @@ import ua.delsix.repository.UserRepository;
 import ua.delsix.service.TaskService;
 import ua.delsix.service.enums.ServiceCommand;
 import ua.delsix.utils.MarkupUtils;
+import ua.delsix.utils.MessageUtils;
 import ua.delsix.utils.TaskUtils;
 import ua.delsix.utils.UserUtils;
 
@@ -264,7 +265,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public EditMessageText processGetAllTasksNext(Update update) {
-        return null;
+        return MessageUtils.editMessageGenerator(update, "Test");
     }
 
     @Override

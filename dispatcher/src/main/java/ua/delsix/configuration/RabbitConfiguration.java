@@ -23,4 +23,9 @@ public class RabbitConfiguration {
     public Queue ANSWER_UPDATE() {
     return new Queue(RabbitQueue.ANSWER_UPDATE);
     }
+
+    @Bean
+    public Queue EDIT_ANSWER_UPDATE() {
+        return new Queue(RabbitQueue.EDIT_ANSWER_UPDATE);
+    }
 }

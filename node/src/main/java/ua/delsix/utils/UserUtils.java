@@ -17,7 +17,14 @@ public class UserUtils {
     }
 
     public User getUserByTag(Update update) {
-        org.telegram.telegrambots.meta.api.objects.User tgUser = update.getMessage().getFrom();
+        org.telegram.telegrambots.meta.api.objects.User tgUser;
+        
+        if(update.hasMessage()) {
+            tgUser = update.getMessage().getFrom();
+        } else {
+            tgUser = update.getCallbackQuery().getFrom();
+        }
+
         String userTag = tgUser.getUserName();
         Long userId = tgUser.getId();
         Optional<User> user = userRepository.findByTag(userTag);

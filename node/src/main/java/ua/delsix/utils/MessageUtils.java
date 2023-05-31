@@ -26,4 +26,15 @@ public class MessageUtils {
 
         return editMessage;
     }
+
+    public static EditMessageText editMessageGenerator(Update update, String text, InlineKeyboardMarkup markup) {
+        var message = update.getCallbackQuery().getMessage();
+        EditMessageText editMessage = new EditMessageText();
+        editMessage.setMessageId(message.getMessageId());
+        editMessage.setChatId(message.getChatId());
+        editMessage.setText(text);
+        editMessage.setReplyMarkup(markup);
+
+        return editMessage;
+    }
 }

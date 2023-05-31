@@ -24,10 +24,7 @@ import ua.delsix.utils.UserUtils;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Log4j
@@ -265,7 +262,29 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public EditMessageText processGetAllTasksNext(Update update) {
-        return MessageUtils.editMessageGenerator(update, "Test");
+        //TODO replace this block to appropriate place
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+        String command = callbackData[1];
+        int pageIndex = Integer.parseInt(callbackData[2]);
+        int pageTaskIndex = Integer.parseInt(callbackData[3]);
+
+        if (command.equals("NEXT")) {
+            pageIndex++;
+        } else if (command.equals("PREV")) {
+            pageIndex--;
+        } else if (command.equals("TASK")) {
+            // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
+            int taskIndex = pageIndex * 8 + pageTaskIndex;
+            //TODO handle task in detail request
+        }
+
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
+
+        String[] pages = pagesAndMarkup.keySet().iterator().next();
+        InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
+
+        return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
     }
 
     @Override
@@ -280,34 +299,53 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public SendMessage processGetAllTasks(Update update, SendMessage answerMessage) {
-        User user = userUtils.getUserByTag(update);
-        List<Task> tasks = taskRepository.findAllByUserIdOrderByTargetDateDesc(user.getId());
-        String[] pages = new String[(int) Math.ceil(tasks.size() / 8.0)];
         int pageIndex = 0;
-        int pageTaskIndex = 0;
+
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
 
         // handle case if user doesn't have any tasks yet
-        if (tasks.size() == 0) {
+        if (pagesAndMarkup == null) {
             answerMessage.setText("You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons");
             return answerMessage;
         }
-        // if no callbackQuery page = 0, if callbackQuery page = callbackQuery
-        if (update.hasCallbackQuery()) {
-            CallbackQuery callbackQuery = update.getCallbackQuery();
-            String[] callbackData = callbackQuery.getData().split("/");
-            String command = callbackData[1];
-            pageIndex = Integer.parseInt(callbackData[2]);
-            pageTaskIndex = Integer.parseInt(callbackData[3]);
 
-            if (command.equals("NEXT")) {
-                pageIndex++;
-            } else if (command.equals("PREV")) {
-                pageIndex--;
-            } else if (command.equals("TASK")) {
-                // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
-                int taskIndex = pageIndex * 8 + pageTaskIndex;
-                //TODO handle task in detail request
-            }
+        String[] pages = pagesAndMarkup.keySet().iterator().next();
+        InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
+
+        // finish setting up answer message
+        answerMessage.setText(pages[pageIndex]);
+        answerMessage.setReplyMarkup(markup);
+        return answerMessage;
+    }
+
+    @Override
+    public SendMessage processDeleteTask(Update update, SendMessage answerMessage) {
+        //TODO
+
+        return null;
+    }
+
+    // CreateTask methods
+
+    private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task) {
+        ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
+        answerMessage.setReplyMarkup(markup);
+        answerMessage.setText(taskUtils.responseForEachState(task));
+
+        return answerMessage;
+    }
+
+    // GetAllTasks methods
+
+    private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex) {
+        // TODO maybe create a separate class to hold info, instead of Map
+        User user = userUtils.getUserByTag(update);
+        List<Task> tasks = taskRepository.findAllByUserIdOrderByTargetDateDesc(user.getId());
+        String[] pages = new String[(int) Math.ceil(tasks.size() / 8.0)];
+        int pageTaskIndex = 0;
+
+        if (tasks.size() == 0) {
+            return null;
         }
 
         //keyboard setup
@@ -379,24 +417,10 @@ public class TaskServiceImpl implements TaskService {
 
         log.trace("Keyboard: " + keyboard);
 
-        // finish setting up answer message
-        answerMessage.setText(pages[pageIndex]);
-        answerMessage.setReplyMarkup(markup);
-        return answerMessage;
+        // creating map to return pages and markup at the same time
+        Map<String[], InlineKeyboardMarkup> map = new HashMap<>();
+        map.put(pages, markup);
+        return map;
     }
 
-    @Override
-    public SendMessage processDeleteTask(Update update, SendMessage answerMessage) {
-        //TODO
-
-        return null;
-    }
-
-    private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task) {
-        ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
-        answerMessage.setReplyMarkup(markup);
-        answerMessage.setText(taskUtils.responseForEachState(task));
-
-        return answerMessage;
-    }
 }

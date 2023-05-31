@@ -72,6 +72,11 @@ public class MainServiceImpl implements MainService {
             }
         }
 
+        if(answer == null) {
+            log.error("answer is null");
+            return;
+        }
+
         log.debug("answer: "+answer);
 
         producerService.produceAnswer(answer);

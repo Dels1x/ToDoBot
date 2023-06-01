@@ -265,22 +265,13 @@ public class TaskServiceImpl implements TaskService {
         //TODO replace this block to appropriate place
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
-        String command = callbackData[1];
         int pageIndex = Integer.parseInt(callbackData[2]);
-        int pageTaskIndex = Integer.parseInt(callbackData[3]);
 
-        if (command.equals("NEXT")) {
-            pageIndex++;
-        } else if (command.equals("PREV")) {
-            pageIndex--;
-        } else if (command.equals("TASK")) {
-            // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
-            int taskIndex = pageIndex * 8 + pageTaskIndex;
-            //TODO handle task in detail request
-        }
+        pageIndex++;
 
         Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
 
+        assert pagesAndMarkup != null;
         String[] pages = pagesAndMarkup.keySet().iterator().next();
         InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
 
@@ -289,12 +280,92 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public EditMessageText processGetAllTasksPrev(Update update) {
-        return null;
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+        int pageIndex = Integer.parseInt(callbackData[2]);
+
+        pageIndex--;
+
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
+
+        assert pagesAndMarkup != null;
+        String[] pages = pagesAndMarkup.keySet().iterator().next();
+        InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
+
+        return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
     }
 
     @Override
     public EditMessageText processGetTaskInDetail(Update update) {
-        return null;
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+        int pageIndex = Integer.parseInt(callbackData[2]);
+        int pageTaskIndex = Integer.parseInt(callbackData[3]);
+        // get user from database to later get needed task using user's id
+        User user = userUtils.getUserByTag(update);
+        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
+
+        // handlind different buttons
+        if (callbackData.length == 5) { {
+            switch (callbackData[4]) {
+                case "NEXT" -> pageTaskIndex++;
+                case "PREV" -> pageTaskIndex--;
+            }
+        }}
+
+        if(pageTaskIndex > 8) {
+            pageTaskIndex = 0;
+            pageIndex++;
+        }
+
+        // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
+        int taskIndex = pageIndex * 8 + pageTaskIndex;
+        //TODO handle task in detail request
+
+        log.trace("taskIndex - "+taskIndex);
+
+        // setting up the keyboard
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
+        List<InlineKeyboardButton> prevNextButtons = new ArrayList<>();
+        List<InlineKeyboardButton> configurationButtons = new ArrayList<>();
+
+        // setting up buttons
+        InlineKeyboardButton prevButton = new InlineKeyboardButton("Previous");
+        InlineKeyboardButton nextButton = new InlineKeyboardButton("Next");
+        InlineKeyboardButton editButton = new InlineKeyboardButton("Edit");
+        InlineKeyboardButton deleteButton = new InlineKeyboardButton("Delete");
+        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
+
+        if(taskIndex > 0) {
+            prevButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/PREV", pageIndex, pageTaskIndex));
+            prevNextButtons.add(prevButton);
+        }
+        if(taskIndex < tasks.size() - 1) {
+            nextButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/NEXT", pageIndex, pageTaskIndex));
+            prevNextButtons.add(nextButton);
+        }
+        editButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT", pageIndex, pageTaskIndex));
+        deleteButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/DELETE", pageIndex, pageTaskIndex));
+        cancelButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/CANCEL", pageIndex, pageTaskIndex));
+
+        // adding buttons to keyboard
+        configurationButtons.add(editButton);
+        configurationButtons.add(deleteButton);
+        configurationButtons.add(cancelButton);
+
+        keyboard.add(prevNextButtons);
+        keyboard.add(configurationButtons);
+
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(keyboard);
+
+        if (taskIndex < 0 || taskIndex >= tasks.size()) {
+            return null;
+        }
+        // get needed task
+        Task task = tasks.get(taskIndex);
+
+        return MessageUtils.editMessageGenerator(update, taskUtils.taskToStringInDetail(task), markup);
     }
 
     @Override
@@ -312,10 +383,7 @@ public class TaskServiceImpl implements TaskService {
         String[] pages = pagesAndMarkup.keySet().iterator().next();
         InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
 
-        // finish setting up answer message
-        answerMessage.setText(pages[pageIndex]);
-        answerMessage.setReplyMarkup(markup);
-        return answerMessage;
+        return MessageUtils.sendMessageGenerator(update, pages[pageIndex], markup);
     }
 
     @Override
@@ -340,7 +408,7 @@ public class TaskServiceImpl implements TaskService {
     private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex) {
         // TODO maybe create a separate class to hold info, instead of Map
         User user = userUtils.getUserByTag(update);
-        List<Task> tasks = taskRepository.findAllByUserIdOrderByTargetDateDesc(user.getId());
+        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
         String[] pages = new String[(int) Math.ceil(tasks.size() / 8.0)];
         int pageTaskIndex = 0;
 
@@ -387,8 +455,6 @@ public class TaskServiceImpl implements TaskService {
             taskNumber++;
         }
 
-        log.trace("Pages: " + Arrays.toString(pages));
-
         // setting up row with prev next buttons
         if (pageIndex > 0 && pageIndex < pageNumber) {
             InlineKeyboardButton prevButton = new InlineKeyboardButton("<");
@@ -414,8 +480,6 @@ public class TaskServiceImpl implements TaskService {
         keyboard.add(secondRow);
         keyboard.add(thirdRow);
         markup.setKeyboard(keyboard);
-
-        log.trace("Keyboard: " + keyboard);
 
         // creating map to return pages and markup at the same time
         Map<String[], InlineKeyboardMarkup> map = new HashMap<>();

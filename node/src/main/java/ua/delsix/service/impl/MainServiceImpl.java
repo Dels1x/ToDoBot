@@ -63,7 +63,7 @@ public class MainServiceImpl implements MainService {
 
         log.trace("CallbackData: "+ Arrays.toString(callbackData));
 
-        // set userCommand based on callbackQuery
+        // get answer based on callbackQuery
         if (callbackData[0].equals("GET_ALL_TASKS")) {
             switch (callbackData[1]) {
                 case "NEXT" -> answer = taskService.processGetAllTasksNext(update);
@@ -76,8 +76,6 @@ public class MainServiceImpl implements MainService {
             log.error("answer is null");
             return;
         }
-
-        log.debug("answer: "+answer);
 
         producerService.produceAnswer(answer);
     }

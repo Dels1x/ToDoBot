@@ -37,4 +37,14 @@ public class MessageUtils {
 
         return editMessage;
     }
+
+    public static SendMessage sendMessageGenerator(Update update, String text, InlineKeyboardMarkup markup) {
+        long chatId = update.getMessage().getChatId();
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(text);
+        sendMessage.setReplyMarkup(markup);
+
+        return sendMessage;
+    }
 }

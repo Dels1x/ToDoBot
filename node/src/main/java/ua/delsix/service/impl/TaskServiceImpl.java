@@ -254,7 +254,14 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public SendMessage processEditingTask(Update update, SendMessage answerMessage) {
+    public EditMessageText processTasksEdit(Update update) {
+        //TODO
+
+        return null;
+    }
+
+    @Override
+    public EditMessageText processTasksDelete(Update update) {
         //TODO
 
         return null;
@@ -305,11 +312,14 @@ public class TaskServiceImpl implements TaskService {
         User user = userUtils.getUserByTag(update);
         List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
 
-        // handlind different buttons
+        // handling different buttons
         if (callbackData.length == 5) { {
             switch (callbackData[4]) {
                 case "NEXT" -> pageTaskIndex++;
                 case "PREV" -> pageTaskIndex--;
+                case "CANCEL" -> {
+                    return returnToAllTasks(update);
+                }
             }
         }}
 
@@ -386,13 +396,6 @@ public class TaskServiceImpl implements TaskService {
         return MessageUtils.sendMessageGenerator(update, pages[pageIndex], markup);
     }
 
-    @Override
-    public SendMessage processDeleteTask(Update update, SendMessage answerMessage) {
-        //TODO
-
-        return null;
-    }
-
     // CreateTask methods
 
     private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task) {
@@ -404,6 +407,27 @@ public class TaskServiceImpl implements TaskService {
     }
 
     // GetAllTasks methods
+
+    private EditMessageText returnToAllTasks(Update update) {
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+        int pageIndex = Integer.parseInt(callbackData[2]);
+
+        EditMessageText message = new EditMessageText();
+
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
+
+        // handle case if user doesn't have any tasks yet (user can remove the task, so he could still have 0 tasks)
+        if (pagesAndMarkup == null) {
+            message.setText("You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons");
+            return message;
+        }
+
+        String[] pages = pagesAndMarkup.keySet().iterator().next();
+        InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
+
+        return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
+    }
 
     private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex) {
         // TODO maybe create a separate class to hold info, instead of Map

@@ -246,7 +246,9 @@ public class TaskServiceImpl implements TaskService {
                 user.setTaskCompleted(user.getTaskCompleted() + 1);
                 userRepository.save(user);
 
-                return completedTaskAnswer(answerMessage, task);
+                var message = completedTaskAnswer(answerMessage, task);
+                message.setReplyMarkup(null);
+                return message;
             }
         }
 
@@ -262,14 +264,25 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public EditMessageText processTasksDelete(Update update) {
-        //TODO
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+        int pageIndex = Integer.parseInt(callbackData[2]);
+        int pageTaskIndex = Integer.parseInt(callbackData[3]);
+        // get user from database to later get needed task using user's id
+        User user = userUtils.getUserByTag(update);
 
-        return null;
+        // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
+        int taskIndex = pageIndex * 8 + pageTaskIndex;
+
+        Task taskToDelete = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId()).get(taskIndex);
+        taskRepository.delete(taskToDelete);
+
+
+        return returnToAllTasks(update);
     }
 
     @Override
     public EditMessageText processGetAllTasksNext(Update update) {
-        //TODO replace this block to appropriate place
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
         int pageIndex = Integer.parseInt(callbackData[2]);
@@ -320,6 +333,13 @@ public class TaskServiceImpl implements TaskService {
                 case "CANCEL" -> {
                     return returnToAllTasks(update);
                 }
+                case "DELETE" -> {
+                    //TODO add a confirmation to delete a task
+                    return processTasksDelete(update);
+                }
+                case "EDIT" -> {
+                    return processTasksEdit(update);
+                }
             }
         }}
 
@@ -330,9 +350,6 @@ public class TaskServiceImpl implements TaskService {
 
         // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
         int taskIndex = pageIndex * 8 + pageTaskIndex;
-        //TODO handle task in detail request
-
-        log.trace("taskIndex - "+taskIndex);
 
         // setting up the keyboard
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();

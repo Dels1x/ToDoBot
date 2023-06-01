@@ -116,8 +116,6 @@ public class MainServiceImpl implements MainService {
                     // process further creation/editing of a task in TaskService
                     if(taskState.startsWith("CREAT")) {
                         answerMessage = taskService.processCreatingTask(update, answerMessage);
-                    } else if(taskState.startsWith("EDIT")) {
-                        answerMessage = taskService.processEditingTask(update, answerMessage);
                     } else {
                         answerText = "Unknown command";
                         answerMessage.setText(answerText);

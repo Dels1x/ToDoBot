@@ -262,12 +262,17 @@ public class TaskServiceImpl implements TaskService {
         return null;
     }
 
+    // Delete methods
+
     @Override
     public EditMessageText processTasksDelete(Update update) {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
         int pageIndex = Integer.parseInt(callbackData[2]);
         int pageTaskIndex = Integer.parseInt(callbackData[3]);
+
+        log.trace("callbackData: " + Arrays.toString(callbackData));
+
         // get user from database to later get needed task using user's id
         User user = userUtils.getUserByTag(update);
 
@@ -277,15 +282,48 @@ public class TaskServiceImpl implements TaskService {
         Task taskToDelete = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId()).get(taskIndex);
         taskRepository.delete(taskToDelete);
 
-
         return returnToAllTasks(update);
     }
+
+    private EditMessageText processTasksDeleteConfirm(Update update) {
+        CallbackQuery query = update.getCallbackQuery();
+        String[] callbackData = query.getData().split("/");
+        int pageIndex = Integer.parseInt(callbackData[2]);
+        int pageTaskIndex = Integer.parseInt(callbackData[3]);
+
+        log.trace("callbackData: " + Arrays.toString(callbackData));
+
+        String text = "Are you sure you wish to delete this task";
+
+        //setting up keyboard
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
+        List<InlineKeyboardButton> buttons = new ArrayList<>();
+
+        InlineKeyboardButton confirmButton = new InlineKeyboardButton("Confirm");
+        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
+
+        confirmButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/DELETE", pageIndex, pageTaskIndex));
+        cancelButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d", pageIndex, pageTaskIndex));
+
+        buttons.add(confirmButton);
+        buttons.add(cancelButton);
+
+        keyboard.add(buttons);
+
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup(keyboard);
+
+        return MessageUtils.editMessageGenerator(update, text, markup);
+    }
+
+    // Get methods
 
     @Override
     public EditMessageText processGetAllTasksNext(Update update) {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
         int pageIndex = Integer.parseInt(callbackData[2]);
+
+        log.trace("callbackData: " + Arrays.toString(callbackData));
 
         pageIndex++;
 
@@ -304,6 +342,8 @@ public class TaskServiceImpl implements TaskService {
         String[] callbackData = callbackQuery.getData().split("/");
         int pageIndex = Integer.parseInt(callbackData[2]);
 
+        log.trace("callbackData: " + Arrays.toString(callbackData));
+
         pageIndex--;
 
         Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
@@ -319,8 +359,19 @@ public class TaskServiceImpl implements TaskService {
     public EditMessageText processGetTaskInDetail(Update update) {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
-        int pageIndex = Integer.parseInt(callbackData[2]);
-        int pageTaskIndex = Integer.parseInt(callbackData[3]);
+
+        log.trace("callbackData: " + Arrays.toString(callbackData));
+
+        int pageIndex;
+        int pageTaskIndex;
+
+        try {
+            pageIndex = Integer.parseInt(callbackData[2]);
+            pageTaskIndex = Integer.parseInt(callbackData[3]);
+        } catch (NumberFormatException e) {
+            log.error("CallbackQuery error: "+e.getMessage());
+            return null;
+        }
         // get user from database to later get needed task using user's id
         User user = userUtils.getUserByTag(update);
         List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
@@ -333,8 +384,10 @@ public class TaskServiceImpl implements TaskService {
                 case "CANCEL" -> {
                     return returnToAllTasks(update);
                 }
+                case "DELETE_CONFIRM" -> {
+                    return processTasksDeleteConfirm(update);
+                }
                 case "DELETE" -> {
-                    //TODO add a confirmation to delete a task
                     return processTasksDelete(update);
                 }
                 case "EDIT" -> {
@@ -372,7 +425,7 @@ public class TaskServiceImpl implements TaskService {
             prevNextButtons.add(nextButton);
         }
         editButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT", pageIndex, pageTaskIndex));
-        deleteButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/DELETE", pageIndex, pageTaskIndex));
+        deleteButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/DELETE_CONFIRM", pageIndex, pageTaskIndex));
         cancelButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/CANCEL", pageIndex, pageTaskIndex));
 
         // adding buttons to keyboard
@@ -430,14 +483,12 @@ public class TaskServiceImpl implements TaskService {
         String[] callbackData = callbackQuery.getData().split("/");
         int pageIndex = Integer.parseInt(callbackData[2]);
 
-        EditMessageText message = new EditMessageText();
-
         Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
 
         // handle case if user doesn't have any tasks yet (user can remove the task, so he could still have 0 tasks)
         if (pagesAndMarkup == null) {
-            message.setText("You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons");
-            return message;
+            String text = "You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons";
+            return MessageUtils.editMessageGenerator(update, text);
         }
 
         String[] pages = pagesAndMarkup.keySet().iterator().next();

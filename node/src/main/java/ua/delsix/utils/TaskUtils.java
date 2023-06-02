@@ -61,6 +61,7 @@ public class TaskUtils {
     }
 
     public String taskToStringInDetail(Task task) {
+        // TODO add emojis
         System.out.println(task.toString());
         StringBuilder sb = new StringBuilder("Task:\n\n");
         sb.append(String.format("""

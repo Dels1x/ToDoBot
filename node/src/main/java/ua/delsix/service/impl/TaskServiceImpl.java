@@ -377,24 +377,22 @@ public class TaskServiceImpl implements TaskService {
         List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
 
         // handling different buttons
-        if (callbackData.length == 5) { {
-            switch (callbackData[4]) {
-                case "NEXT" -> pageTaskIndex++;
-                case "PREV" -> pageTaskIndex--;
-                case "CANCEL" -> {
-                    return returnToAllTasks(update);
-                }
-                case "DELETE_CONFIRM" -> {
-                    return processTasksDeleteConfirm(update);
-                }
-                case "DELETE" -> {
-                    return processTasksDelete(update);
-                }
-                case "EDIT" -> {
-                    return processTasksEdit(update);
-                }
+        switch (callbackData[4]) {
+            case "NEXT" -> pageTaskIndex++;
+            case "PREV" -> pageTaskIndex--;
+            case "CANCEL" -> {
+                return returnToAllTasks(update);
             }
-        }}
+            case "DELETE_CONFIRM" -> {
+                return processTasksDeleteConfirm(update);
+            }
+            case "DELETE" -> {
+                return processTasksDelete(update);
+            }
+            case "EDIT" -> {
+                return processTasksEdit(update);
+            }
+        }
 
         if(pageTaskIndex > 8) {
             pageTaskIndex = 0;
@@ -404,6 +402,21 @@ public class TaskServiceImpl implements TaskService {
         // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
         int taskIndex = pageIndex * 8 + pageTaskIndex;
 
+        if (taskIndex < 0 || taskIndex >= tasks.size()) {
+            return null;
+        }
+        // get needed task
+        Task task = tasks.get(taskIndex);
+
+        // handle a button to complete a task
+        if (callbackData[4].equals("COMPLETE")) {
+            task.setStatus("Completed");
+            taskRepository.save(task);
+        } else if (callbackData[4].equals("UNCOMPLETE")) {
+            task.setStatus("Uncompleted");
+            taskRepository.save(task);
+        }
+
         // setting up the keyboard
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
         List<InlineKeyboardButton> prevNextButtons = new ArrayList<>();
@@ -412,10 +425,13 @@ public class TaskServiceImpl implements TaskService {
         // setting up buttons
         InlineKeyboardButton prevButton = new InlineKeyboardButton("Previous");
         InlineKeyboardButton nextButton = new InlineKeyboardButton("Next");
+        InlineKeyboardButton completeButton = new InlineKeyboardButton("Complete");
+        InlineKeyboardButton uncompleteButton = new InlineKeyboardButton("Uncomplete");
         InlineKeyboardButton editButton = new InlineKeyboardButton("Edit");
         InlineKeyboardButton deleteButton = new InlineKeyboardButton("Delete");
         InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
 
+        // setting callback data and adding buttons to keyboard
         if(taskIndex > 0) {
             prevButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/PREV", pageIndex, pageTaskIndex));
             prevNextButtons.add(prevButton);
@@ -424,11 +440,17 @@ public class TaskServiceImpl implements TaskService {
             nextButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/NEXT", pageIndex, pageTaskIndex));
             prevNextButtons.add(nextButton);
         }
+        if(task.getStatus().equals("Completed")) {
+            uncompleteButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/UNCOMPLETE", pageIndex, pageTaskIndex));
+            configurationButtons.add(uncompleteButton);
+        } else {
+            completeButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/COMPLETE", pageIndex, pageTaskIndex));
+            configurationButtons.add(completeButton);
+        }
         editButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT", pageIndex, pageTaskIndex));
         deleteButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/DELETE_CONFIRM", pageIndex, pageTaskIndex));
         cancelButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/CANCEL", pageIndex, pageTaskIndex));
 
-        // adding buttons to keyboard
         configurationButtons.add(editButton);
         configurationButtons.add(deleteButton);
         configurationButtons.add(cancelButton);
@@ -439,14 +461,9 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(keyboard);
 
-        if (taskIndex < 0 || taskIndex >= tasks.size()) {
-            return null;
-        }
-        // get needed task
-        Task task = tasks.get(taskIndex);
-
         return MessageUtils.editMessageGenerator(update, taskUtils.taskToStringInDetail(task), markup);
     }
+
 
     @Override
     public SendMessage processGetAllTasks(Update update, SendMessage answerMessage) {
@@ -533,7 +550,7 @@ public class TaskServiceImpl implements TaskService {
 
             // set up button for current task
             InlineKeyboardButton currentButton = new InlineKeyboardButton(task.getName());
-            currentButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d", pageNumber, taskNumber));
+            currentButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/TASK", pageNumber, taskNumber));
 
             if (pageNumber == pageIndex) {
                 if (taskNumber >= 4) {

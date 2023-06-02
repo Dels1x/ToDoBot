@@ -9,7 +9,6 @@ import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
     Optional<Task> findTopByUserIdOrderByIdDesc(Long userId);
-    List<Task> findAllByUserIdOrderByTargetDateDesc(Long userId);
-    @Query("SELECT t FROM Task t ORDER BY t.targetDate, t.id ASC")
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId ORDER BY t.targetDate, t.id ASC")
     List<Task> findAllByUserIdSortedByTargetDateAndIdAsc(Long userId);
 }

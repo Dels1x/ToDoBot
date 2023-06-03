@@ -14,7 +14,7 @@ public class TaskUtils {
 
     public String getDifficultyDescription(Integer diff) {
         if(diff == null) {
-            return "Not specified";
+            return "❌";
         }
 
         return switch (diff) {
@@ -26,13 +26,13 @@ public class TaskUtils {
             case 5 -> "Difficult";
             case 6 -> "Very difficult";
             case 7 -> "Extremely difficult";
-            default -> "Not specified";
+            default -> "❌";
         };
     }
 
     public String getPriorityDescription(Integer priority) {
         if(priority == null) {
-            return "Not specified";
+            return "❌";
         }
 
         return switch (priority) {
@@ -42,16 +42,17 @@ public class TaskUtils {
             case 4 -> "High";
             case 5 -> "Very high";
             case 6 -> "Urgent";
-            default -> "Not specified";
+            default -> "❌";
         };
     }
 
     public String taskToString(Task task) {
+        //TODO make so that if X is null, then don't put that info at all
         return String.format("""
-                %s
-                - %s
+                ✏️ %s
+                💬 - %s
                 
-                📅 %s ️⭐️️ %s ⚡️ %s #%s""",
+                📅 %s ️⭐️️ %s ⚡️ %s 🏷️#%s""",
                 task.getName() == null ? "Unnamed" : task.getName(),
                 task.getDescription() == null ? "No description" : task.getDescription(),
                 task.getTargetDate() == null ? "No date specified" : task.getTargetDate().toString(),
@@ -61,26 +62,25 @@ public class TaskUtils {
     }
 
     public String taskToStringInDetail(Task task) {
-        // TODO add emojis
-        System.out.println(task.toString());
         StringBuilder sb = new StringBuilder("Task:\n\n");
         sb.append(String.format("""
-                Name: %s
-                Description: %s
-                Date: %s
-                Priority: %s
-                Difficulty: %s
-                Tag: %s
-                Status: %s
-                Created at: %s
+                ✏️ Name: %s
+                💬 Description: %s
+                📅 Date: %s
+                ⭐️ Priority: %s
+                ⚡️ Difficulty: %s
+                🏷️ Tag: #%s
+                ❔ Completed: %s
+                🕒 Created at: %s
                 """,
-                task.getName() == null ? "Unnamed" : task.getName(),
-                task.getDescription() == null ? "No description" : task.getDescription(),
-                task.getTargetDate() == null ? "No date specified" : task.getTargetDate().toString(),
+                task.getName() == null ? "❌" : task.getName(),
+                task.getDescription() == null ? "❌" : task.getDescription(),
+                task.getTargetDate() == null ? "❌" : task.getTargetDate().toString(),
                 getPriorityDescription(task.getPriority()),
                 getDifficultyDescription(task.getDifficulty()),
-                task.getTag() == null ? "Untagged" :  task.getTag(),
-                task.getStatus() == null ? "Uncompleted" : task.getStatus(),
+                task.getTag() == null ? "❌" :  task.getTag(),
+                task.getStatus() == null ? "❌" :
+                        task.getStatus().equals("Completed") ? "✅" : "❌",
                 task.getCreatedAt().toString()));
 
         if (task.getCompletionDate() != null) {

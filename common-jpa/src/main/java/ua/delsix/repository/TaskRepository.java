@@ -11,4 +11,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     Optional<Task> findTopByUserIdOrderByIdDesc(Long userId);
     @Query("SELECT t FROM Task t WHERE t.userId = :userId ORDER BY t.targetDate, t.id ASC")
     List<Task> findAllByUserIdSortedByTargetDateAndIdAsc(Long userId);
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId ORDER BY t.status DESC, t.targetDate, t.id ASC")
+    List<Task> findAllByUserIdSortedByTargetStatusAndDateAndId(Long userId);
 }

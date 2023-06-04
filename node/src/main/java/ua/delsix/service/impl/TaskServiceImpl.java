@@ -279,7 +279,7 @@ public class TaskServiceImpl implements TaskService {
         // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
         int taskIndex = pageIndex * 8 + pageTaskIndex;
 
-        Task taskToDelete = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId()).get(taskIndex);
+        Task taskToDelete = taskRepository.findAllByUserIdSortedByTargetStatusAndDateAndId(user.getId()).get(taskIndex);
         taskRepository.delete(taskToDelete);
 
         return returnToAllTasks(update);
@@ -374,7 +374,7 @@ public class TaskServiceImpl implements TaskService {
         }
         // get user from database to later get needed task using user's id
         User user = userUtils.getUserByTag(update);
-        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
+        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetStatusAndDateAndId(user.getId());
 
         // handling different buttons
         switch (callbackData[4]) {
@@ -517,7 +517,7 @@ public class TaskServiceImpl implements TaskService {
     private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex) {
         // TODO maybe create a separate class to hold info, instead of Map
         User user = userUtils.getUserByTag(update);
-        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
+        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetStatusAndDateAndId(user.getId());
         String[] pages = new String[(int) Math.ceil(tasks.size() / 8.0)];
         int pageTaskIndex = 0;
 
@@ -539,11 +539,23 @@ public class TaskServiceImpl implements TaskService {
         // creating list of pages full of tasks
         int pageNumber = -1;
         int taskNumber = 0;
+        boolean noCompletedFlowYet = true;
         for (int i = 0; i < tasks.size(); i++) {
             if (i % 8 == 0) {
                 pageNumber++;
                 taskNumber = 0;
                 pages[pageNumber] = "Tasks:\n\n";
+
+                if(pageNumber == 0) {
+                    pages[pageNumber] = pages[pageNumber].concat("❌ Uncompleted:\n\n");
+                }
+            }
+
+            //Mark completed/uncompleted
+            if(noCompletedFlowYet && tasks.get(i).getStatus().equals("Completed")) {
+                noCompletedFlowYet = false;
+
+                pages[pageNumber] = pages[pageNumber].concat("✅ Completed:\n\n");
             }
             // get current task
             Task task = tasks.get(i);

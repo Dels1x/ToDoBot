@@ -14,6 +14,7 @@ import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.repository.UserRepository;
+import ua.delsix.service.ProducerService;
 import ua.delsix.service.TaskService;
 import ua.delsix.service.enums.ServiceCommand;
 import ua.delsix.utils.MarkupUtils;
@@ -30,19 +31,21 @@ import java.util.*;
 @Log4j
 public class TaskServiceImpl implements TaskService {
     private final UserUtils userUtils;
+    private final TaskUtils taskUtils;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
-    private final TaskUtils taskUtils;
+    private final ProducerService producerService;
 
-    public TaskServiceImpl(UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils) {
+    public TaskServiceImpl(UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, ProducerService producerService) {
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.taskUtils = taskUtils;
+        this.producerService = producerService;
     }
 
     @Override
-    public SendMessage processCreateTask(Update update, SendMessage answerMessage) {
+    public SendMessage processCreateTask(Update update) {
         // creating a new task
         Task newTask = Task.builder()
                 .userId(userUtils.getUserByTag(update).getId())
@@ -60,16 +63,16 @@ public class TaskServiceImpl implements TaskService {
         // saving the task to the table
         taskRepository.save(newTask);
 
-        ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
-        answerMessage.setReplyMarkup(markup);
-        answerMessage.setText("Alright, a new task. To proceed, let's choose a name for the task first.");
-
-        // sending answerMessage back to MainService
-        return answerMessage;
+        // sending answerMessage to MainService
+        return MessageUtils.sendMessageGenerator(
+                update,
+                "Alright, a new task. To proceed, let's choose a name for the task first.",
+                MarkupUtils.getCancelSkipFinishMarkup() );
     }
 
     @Override
-    public SendMessage processCreatingTask(Update update, SendMessage answerMessage) {
+    public SendMessage processCreatingTask(Update update) {
+        SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, "");
         Optional<Task> taskOptional = taskRepository.findTopByUserIdOrderByIdDesc(userUtils.getUserByTag(update).getId());
         if (taskOptional.isEmpty()) {
             log.error("User does not have any tasks");
@@ -190,8 +193,12 @@ public class TaskServiceImpl implements TaskService {
                 LocalDate date;
                 // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
                 try {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-                    date = LocalDate.parse(userMessage.getText(), formatter);
+                    if(userMessage.getText().toLowerCase().contains("today")) {
+                        date = LocalDate.now();
+                    } else {
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+                        date = LocalDate.parse(userMessage.getText(), formatter);
+                    }
                 } catch (DateTimeParseException e) {
                     answerMessage.setText("Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\"");
                     return answerMessage;
@@ -255,14 +262,163 @@ public class TaskServiceImpl implements TaskService {
         return answerMessage;
     }
 
+    // EDIT methods
+
     @Override
     public EditMessageText processTasksEdit(Update update) {
-        //TODO
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+        int pageIndex = Integer.parseInt(callbackData[2]);
+        int pageTaskIndex = Integer.parseInt(callbackData[3]);
 
-        return null;
+        log.trace("callbackData: " + Arrays.toString(callbackData));
+
+        // get user from database to later get needed task using user's id
+        User user = userUtils.getUserByTag(update);
+
+        // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
+        int taskIndex = pageIndex * 8 + pageTaskIndex;
+
+        // get task to edit
+        Task taskToEdit = taskRepository.findAllByUserIdSortedByTargetStatusAndDateAndId(user.getId()).get(taskIndex);
+
+        // calling editTask method, if callbackData presses any edit button and return null to MainService
+        if(callbackData.length == 6) {
+            if(taskSwitchStateToEdit(taskToEdit, update)) {
+               return processGetTaskInDetail(update);
+            }
+
+            return null;
+        }
+
+        return MessageUtils.editMessageGenerator(
+                update,
+                taskUtils.taskToStringInDetail(taskToEdit),
+                getEditMarkup(callbackData));
     }
 
-    // Delete methods
+    private boolean taskSwitchStateToEdit(Task task, Update update) {
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+
+        switch (callbackData[5]) {
+            case "NAME" -> {
+                task.setState("EDITING_NAME");
+                String text = String.format("Enter a new title for task \"%s\"", task.getName());
+                log.trace("Sending answer to ProducerService");
+                producerService.produceAnswer(
+                        MessageUtils.sendMessageGenerator(
+                                update,
+                                text));
+            }
+            case "DESC" -> {
+                task.setState("EDITING_DESCRIPTION");
+                String text = String.format("Enter a new description for task \"%s\"", task.getName());
+                log.trace("Sending answer to ProducerService");
+                producerService.produceAnswer(
+                        MessageUtils.sendMessageGenerator(
+                                update,
+                                text));
+            }
+            case "PRIOR" -> {
+                task.setState("EDITING_PRIORITY");
+                String text = String.format("Enter a new priority for task \"%s\"", task.getName());
+                log.trace("Sending answer to ProducerService");
+                producerService.produceAnswer(
+                        MessageUtils.sendMessageGenerator(
+                                update,
+                                text));
+            }
+            case "DIFF" -> {
+                task.setState("EDITING_DIFFICULTY");
+                String text = String.format("Enter a new difficulty for task \"%s\"", task.getName());
+                log.trace("Sending answer to ProducerService");
+                producerService.produceAnswer(
+                        MessageUtils.sendMessageGenerator(
+                                update,
+                                text));
+            }
+            case "TAG" -> {
+                task.setState("EDITING_TAG");
+                String text = String.format("Enter a new tag for task \"%s\"", task.getName());
+                log.trace("Sending answer to ProducerService");
+                producerService.produceAnswer(
+                        MessageUtils.sendMessageGenerator(
+                                update,
+                                text));
+            }
+            case "DATE" -> {
+                task.setState("EDITING_DATE");
+                String text = String.format("Enter a new date for task \"%s\"", task.getName());
+                log.trace("Sending answer to ProducerService");
+                producerService.produceAnswer(
+                        MessageUtils.sendMessageGenerator(
+                                update,
+                                text));
+            }
+            case "CANCEL" -> {
+                task.setState("COMPLETED");
+                taskRepository.save(task);
+                return true;
+            }
+        }
+
+        taskRepository.save(task);
+        return false;
+    }
+
+    @Override
+    public SendMessage editTask(Update update, Task task) {
+        //TODO
+
+        return MessageUtils.sendMessageGenerator(
+                update,
+                ""
+        );
+    }
+
+    private InlineKeyboardMarkup getEditMarkup(String[] callbackData) {
+        int pageIndex = Integer.parseInt(callbackData[2]);
+        int pageTaskIndex = Integer.parseInt(callbackData[3]);
+
+        // setting up the keyboard
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
+        List<InlineKeyboardButton> firstRow = new ArrayList<>();
+        List<InlineKeyboardButton> secondRow = new ArrayList<>();
+
+        // setting up buttons
+        InlineKeyboardButton nameButton = new InlineKeyboardButton("Edit name");
+        InlineKeyboardButton descButton = new InlineKeyboardButton("Edit description");
+        InlineKeyboardButton priorityButton = new InlineKeyboardButton("Edit priority");
+        InlineKeyboardButton difficultyButton = new InlineKeyboardButton("Edit difficulty");
+        InlineKeyboardButton tagButton = new InlineKeyboardButton("Edit tag");
+        InlineKeyboardButton dateButton = new InlineKeyboardButton("Edit date");
+        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
+
+        // setting callback data and adding buttons to keyboard
+        nameButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT/NAME", pageIndex, pageTaskIndex));
+        descButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT/DESC", pageIndex, pageTaskIndex));
+        priorityButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT/PRIOR", pageIndex, pageTaskIndex));
+        difficultyButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT/DIFF", pageIndex, pageTaskIndex));
+        tagButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT/TAG", pageIndex, pageTaskIndex));
+        dateButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT/DATE", pageIndex, pageTaskIndex));
+        cancelButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/EDIT/CANCEL", pageIndex, pageTaskIndex));
+
+        firstRow.add(nameButton);
+        firstRow.add(descButton);
+        firstRow.add(priorityButton);
+        secondRow.add(difficultyButton);
+        secondRow.add(tagButton);
+        secondRow.add(dateButton);
+        secondRow.add(cancelButton);
+
+        keyboard.add(firstRow);
+        keyboard.add(secondRow);
+
+        return new InlineKeyboardMarkup(keyboard);
+    }
+
+    // DELETE methods
 
     @Override
     public EditMessageText processTasksDelete(Update update) {
@@ -315,7 +471,7 @@ public class TaskServiceImpl implements TaskService {
         return MessageUtils.editMessageGenerator(update, text, markup);
     }
 
-    // Get methods
+    // GET methods
 
     @Override
     public EditMessageText processGetAllTasksNext(Update update) {
@@ -390,7 +546,11 @@ public class TaskServiceImpl implements TaskService {
                 return processTasksDelete(update);
             }
             case "EDIT" -> {
-                return processTasksEdit(update);
+                // doing checks, so that if 6th value is CANCEL, it doesn't go on never-ending loop
+                if (callbackData.length == 5 ||
+                        (callbackData.length == 6 && !callbackData[5].equals("CANCEL"))) {
+                    return processTasksEdit(update);
+                }
             }
         }
 
@@ -466,15 +626,17 @@ public class TaskServiceImpl implements TaskService {
 
 
     @Override
-    public SendMessage processGetAllTasks(Update update, SendMessage answerMessage) {
+    public SendMessage processGetAllTasks(Update update) {
         int pageIndex = 0;
 
         Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
 
         // handle case if user doesn't have any tasks yet
         if (pagesAndMarkup == null) {
-            answerMessage.setText("You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons");
-            return answerMessage;
+            return MessageUtils.sendMessageGenerator(
+                    update,
+                    "You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons"
+            );
         }
 
         String[] pages = pagesAndMarkup.keySet().iterator().next();

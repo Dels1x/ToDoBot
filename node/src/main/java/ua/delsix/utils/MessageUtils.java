@@ -3,16 +3,45 @@ package ua.delsix.utils;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 
 @Component
 public class MessageUtils {
     public static SendMessage sendMessageGenerator(Update update, String text) {
-        long chatId = update.getMessage().getChatId();
+        Message message;
+
+        if(update.hasCallbackQuery()) {
+            message = update.getCallbackQuery().getMessage();
+        } else {
+            message = update.getMessage();
+        }
+
+        long chatId = message.getChatId();
+
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId);
         sendMessage.setText(text);
+
+        return sendMessage;
+    }
+
+    public static SendMessage sendMessageGenerator(Update update, String text, ReplyKeyboard markup) {
+        Message message;
+
+        if(update.hasCallbackQuery()) {
+            message = update.getCallbackQuery().getMessage();
+        } else {
+            message = update.getMessage();
+        }
+
+        long chatId = message.getChatId();
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(text);
+        sendMessage.setReplyMarkup(markup);
 
         return sendMessage;
     }
@@ -36,15 +65,5 @@ public class MessageUtils {
         editMessage.setReplyMarkup(markup);
 
         return editMessage;
-    }
-
-    public static SendMessage sendMessageGenerator(Update update, String text, InlineKeyboardMarkup markup) {
-        long chatId = update.getMessage().getChatId();
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        sendMessage.setText(text);
-        sendMessage.setReplyMarkup(markup);
-
-        return sendMessage;
     }
 }

@@ -7,6 +7,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.entity.Task;
+import ua.delsix.entity.User;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.service.MainService;
 import ua.delsix.service.ProducerService;
@@ -16,6 +17,7 @@ import ua.delsix.utils.MessageUtils;
 import ua.delsix.utils.UserUtils;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -83,6 +85,8 @@ public class MainServiceImpl implements MainService {
     private SendMessage processUserMessage(Update update, ServiceCommand userCommand) {
         String answerText = "";
         SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, "");
+        User user = userUtils.getUserByTag(update);
+
         if (userCommand == null) {
             userCommand = ServiceCommand.NON_COMMAND;
         }
@@ -103,22 +107,33 @@ public class MainServiceImpl implements MainService {
                         Type "help" to see all available commands.""";
                 answerMessage.setText(answerText);
             }
-            case CREATE_TASK -> answerMessage = taskService.processCreateTask(update, answerMessage);
-            case TASKS -> answerMessage = taskService.processGetAllTasks(update, answerMessage);
+            case CREATE_TASK -> answerMessage = taskService.processCreateTask(update);
+            case TASKS -> answerMessage = taskService.processGetAllTasks(update);
             default -> {
+                //TODO handle editing
                 answerMessage.setText(answerText);
                 // get task to determine what user tries to achieve by user's last task's state
-                Optional<Task> lastTask = taskRepository.findTopByUserIdOrderByIdDesc(userUtils.getUserByTag(update).getId());
+                Optional<Task> lastTask = taskRepository.findTopByUserIdOrderByIdDesc(user.getId());
                 if(lastTask.isPresent()) {
                     String taskState = lastTask.get().getState();
                     log.trace("User's last task state: "+taskState);
 
                     // process further creation/editing of a task in TaskService
                     if(taskState.startsWith("CREAT")) {
-                        answerMessage = taskService.processCreatingTask(update, answerMessage);
+                        answerMessage = taskService.processCreatingTask(update);
                     } else {
-                        answerText = "Unknown command";
-                        answerMessage.setText(answerText);
+                        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
+
+                        Optional<Task> editTaskOptional = tasks.stream()
+                                .filter(task -> task.getState().startsWith("EDIT"))
+                                .findFirst();
+
+                        if(editTaskOptional.isPresent()) {
+                            taskService.editTask(update, editTaskOptional.get());
+                        } else {
+                            answerText = "Unknown command";
+                            answerMessage.setText(answerText);
+                        }
                     }
                 } else {
                     log.trace("User doesn't have any tasks");

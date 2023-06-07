@@ -129,7 +129,7 @@ public class MainServiceImpl implements MainService {
                                 .findFirst();
 
                         if(editTaskOptional.isPresent()) {
-                            taskService.editTask(update, editTaskOptional.get());
+                            answerMessage = taskService.editTask(update, editTaskOptional.get());
                         } else {
                             answerText = "Unknown command";
                             answerMessage.setText(answerText);

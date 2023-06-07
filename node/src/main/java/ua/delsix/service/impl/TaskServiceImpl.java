@@ -44,6 +44,8 @@ public class TaskServiceImpl implements TaskService {
         this.producerService = producerService;
     }
 
+    // create methods
+
     @Override
     public SendMessage processCreateTask(Update update) {
         // creating a new task
@@ -91,6 +93,7 @@ public class TaskServiceImpl implements TaskService {
         answerMessage.setReplyMarkup(markup);
 
         log.trace("Task: " + task);
+        String answerText;
 
         if (userCommand.equals(ServiceCommand.CANCEL)) {
             // Delete task from tasks table
@@ -135,12 +138,11 @@ public class TaskServiceImpl implements TaskService {
             case "CREATING_NAME" -> {
                 task.setState("CREATING_DESCRIPTION");
 
-                // checking if user's message has text, since he can send a picture of document
-                if (!userMessage.hasText()) {
-                    answerMessage.setText("Please, send a text for the name of your task");
+                answerText = setTaskName(userMessage, task);
+
+                if (answerText != null) {
+                    answerMessage.setText(answerText);
                 }
-                task.setName(userMessage.getText());
-                taskRepository.save(task);
             }
             case "CREATING_DESCRIPTION" -> {
                 // checking if user's message has text, since he can send a picture of document
@@ -262,6 +264,43 @@ public class TaskServiceImpl implements TaskService {
         return answerMessage;
     }
 
+    private String setTaskName(Message userMessage, Task task) {
+        // checking if user's message has text, since he can send a picture of document
+        if (!userMessage.hasText()) {
+            return "Please, send a text for the name of your task";
+        }
+        task.setName(userMessage.getText());
+        taskRepository.save(task);
+
+        return null;
+    }
+
+    private String setTaskDescription(Message userMessage, Task task) {
+        //TODO
+        return null;
+    }
+
+    private String setTaskPriority(Message userMessage, Task task) {
+        //TODO
+        return null;
+    }
+
+    private String setTaskDate(Message userMessage, Task task) {
+        //TODO
+        return null;
+    }
+
+    private String setTaskDifficulty(Message userMessage, Task task) {
+        //TODO
+        return null;
+    }
+
+    private String setTaskTag(Message userMessage, Task task) {
+        //TODO
+        return null;
+    }
+
+
     // EDIT methods
 
     @Override
@@ -370,11 +409,31 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public SendMessage editTask(Update update, Task task) {
         //TODO
+        log.trace(task.toString());
+        Message msg = update.getMessage();
+        String msgText = msg.getText();
+        SendMessage answer = MessageUtils.sendMessageGenerator(update, "");
+        String answerText;
 
-        return MessageUtils.sendMessageGenerator(
-                update,
-                ""
-        );
+
+        switch(task.getState()) {
+            case "EDITING_NAME" -> {
+                answerText = setTaskName(msg, task);
+
+                if (answerText != null) {
+                    answer.setText(answerText);
+                } else {
+                    answer.setText(String.format("Name of the task set to: \"%s\"", msgText));
+                }
+            }
+        }
+
+        log.trace(answer.getText());
+
+        task.setState("COMPLETED");
+        taskRepository.save(task);
+
+        return answer;
     }
 
     private InlineKeyboardMarkup getEditMarkup(String[] callbackData) {

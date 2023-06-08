@@ -100,7 +100,10 @@ public class TaskUtils {
 
                     If you don't want task to have a priority - press the skip button or type in "0".""";
             case "CREATING_PRIORITY" ->
-                    "You can set a target completion date or a deadline for your task using the format \"dd.MM.yyyy\" (e.g. \"30.04.2023\")";
+                    """
+                            You can set a target completion date or a deadline for your task using the format "dd.MM.yyyy" (e.g. "30.04.2023")
+
+                            You can also use today/tomorrow""";
             case "CREATING_DATE" -> """
                     If you want to set a specific difficulty for your task - we can also do that.
                     a number in range of 0-7. (0 - No difficulty; 1 - Very easy; 2 - Easy; 3 - Moderate; 4 - Challenging; 5 - Difficult; 6 - Very Difficult; 7 - Extremely difficult)""";

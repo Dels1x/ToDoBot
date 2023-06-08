@@ -88,6 +88,7 @@ public class TaskServiceImpl implements TaskService {
 
         User user = userUtils.getUserByTag(update);
 
+        //set text according to task's state
         answerMessage.setText(taskUtils.responseForEachState(task));
         ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
         answerMessage.setReplyMarkup(markup);
@@ -120,6 +121,7 @@ public class TaskServiceImpl implements TaskService {
             return answerMessage;
         } else if (userCommand.equals(ServiceCommand.FINISH)) {
             // set task's state to COMPLETED
+            //TODO move this block into a separate method
             task.setState("COMPLETED");
             taskRepository.save(task);
 
@@ -136,131 +138,72 @@ public class TaskServiceImpl implements TaskService {
         // handling different task's states
         switch (taskState) {
             case "CREATING_NAME" -> {
-                task.setState("CREATING_DESCRIPTION");
-
                 answerText = setTaskName(userMessage, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
+                } else {
+                    task.setState("CREATING_DESCRIPTION");
                 }
             }
             case "CREATING_DESCRIPTION" -> {
-                // checking if user's message has text, since he can send a picture of document
-                if (!userMessage.hasText()) {
+                answerText = setTaskDescription(userMessage, task);
 
-                    answerMessage.setText("Please, send a text for the description of your task");
+                if (answerText != null) {
+                    answerMessage.setText(answerText);
+                } else {
+                    task.setState("CREATING_PRIORITY");
                 }
-
-                task.setDescription(userMessage.getText());
-                task.setState("CREATING_PRIORITY");
-                taskRepository.save(task);
             }
             case "CREATING_PRIORITY" -> {
-                // checking if user's message has text, since he can send a picture of document
-                if (!userMessage.hasText()) {
-                    answerMessage.setText("Please, send a number for the priority of your task");
-                }
+                answerText = setTaskPriority(userMessage, task);
 
-                int number;
-
-                // Verifying that user's response is a number
-                try {
-                    number = Integer.parseInt(userMessage.getText());
-                } catch (NumberFormatException e) {
-                    answerMessage.setText("Please, write a number from 1 to 6 for the priority.");
-                    return answerMessage;
-                }
-
-                // Check if the number is within the allowed range of 1 to 6
-                if (number >= 1 && number <= 6) {
-                    // Set the task priority to the user-provided number
-                    task.setPriority(number);
-                } else if (number == 0) {
-                    // Do nothing, since the user provided 0 as the priority
+                if (answerText != null) {
+                    answerMessage.setText(answerText);
                 } else {
-                    // Inform the user that the priority must be within the allowed range of 1 to 6
-                    answerMessage.setText("Allowed range for priority is 1-6.");
-                    // Set the reply markup to include the "Cancel", "Skip", and "Finish" buttons
-                    return answerMessage;
+                    task.setState("CREATING_DATE");
                 }
-
-                task.setState("CREATING_DATE");
-                taskRepository.save(task);
             }
             case "CREATING_DATE" -> {
-                // checking if user's message has text, since he can send a picture of document
-                if (!userMessage.hasText()) {
-                    answerMessage.setText("Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\".");
-                }
-                LocalDate date;
-                // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
-                try {
-                    if(userMessage.getText().toLowerCase().contains("today")) {
-                        date = LocalDate.now();
-                    } else {
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-                        date = LocalDate.parse(userMessage.getText(), formatter);
-                    }
-                } catch (DateTimeParseException e) {
-                    answerMessage.setText("Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\"");
-                    return answerMessage;
-                }
+                answerText = setTaskDate(userMessage, task);
 
-                task.setTargetDate(date);
-                task.setState("CREATING_DIFFICULTY");
-                taskRepository.save(task);
+                if (answerText != null) {
+                    answerMessage.setText(answerText);
+                } else {
+                    task.setState("CREATING_DIFFICULTY");
+                }
             }
             case "CREATING_DIFFICULTY" -> {
-                // checking if user's message has text, since he can send a picture of document
-                if (!userMessage.hasText()) {
-                    answerMessage.setText("Please, send a number in range of 0 to 7 for the difficulty.");
-                }
+                answerText = setTaskDifficulty(userMessage, task);
 
-                int number;
-
-                // Verifying that user's response is a number
-                try {
-                    number = Integer.parseInt(userMessage.getText());
-                } catch (NumberFormatException e) {
-                    answerMessage.setText("Please, send a number in range of 0 to 7 for the difficulty.");
-                    return answerMessage;
-                }
-
-                // Check if the number is within the allowed range of 0 to 7
-                if (number >= 0 && number <= 7) {
-                    // Set the task difficulty to the user-provided number
-                    task.setDifficulty(number);
+                if (answerText != null) {
+                    answerMessage.setText(answerText);
                 } else {
-                    // Inform the user that the priority must be within the allowed range of 0 to 7
-                    answerMessage.setText("Allowed range for difficulty is 0-7.");
-                    // Set the reply markup to include the "Cancel", "Skip", and "Finish" buttons
-                    return answerMessage;
+                    task.setState("CREATING_TAG");
                 }
-
-                task.setState("CREATING_TAG");
-                taskRepository.save(task);
             }
             case "CREATING_TAG" -> {
-                // checking if user's message has text, since he can send a picture of document
-                if (!userMessage.hasText()) {
-                    answerMessage.setText("Please, send a text for the tag of your task");
+                answerText = setTaskTag(userMessage, task);
+
+                if (answerText != null) {
+                    answerMessage.setText(answerText);
+                } else {
+                    // set task's state to COMPLETED and save since we will return message
+                    task.setState("COMPLETED");
+                    taskRepository.save(task);
+
+                    // add 1 to user's completed tasks count
+                    user.setTaskCompleted(user.getTaskCompleted() + 1);
+                    userRepository.save(user);
+
+                    var message = completedTaskAnswer(answerMessage, task);
+                    message.setReplyMarkup(null);
+                    return message;
                 }
-                task.setTag(userMessage.getText());
-
-                // set task's state to COMPLETED
-                task.setState("COMPLETED");
-                taskRepository.save(task);
-
-                // add 1 to user's completed tasks count
-                user.setTaskCompleted(user.getTaskCompleted() + 1);
-                userRepository.save(user);
-
-                var message = completedTaskAnswer(answerMessage, task);
-                message.setReplyMarkup(null);
-                return message;
             }
         }
 
+        taskRepository.save(task);
         return answerMessage;
     }
 
@@ -276,27 +219,109 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private String setTaskDescription(Message userMessage, Task task) {
-        //TODO
+        // checking if user's message has text, since he can send a picture of document
+        if (!userMessage.hasText()) {
+
+            return "Please, send a text for the description of your task";
+        }
+
+        task.setDescription(userMessage.getText());
+        taskRepository.save(task);
         return null;
     }
 
     private String setTaskPriority(Message userMessage, Task task) {
-        //TODO
+        // checking if user's message has text, since he can send a picture of document
+        if (!userMessage.hasText()) {
+            return "Please, send a number for the priority of your task";
+        }
+
+        int number;
+
+        // Verifying that user's response is a number
+        try {
+            number = Integer.parseInt(userMessage.getText());
+        } catch (NumberFormatException e) {
+            return "Please, write a number from 1 to 6 for the priority.";
+        }
+
+        // Check if the number is within the allowed range of 1 to 6
+        if (number >= 1 && number <= 6) {
+            // Set the task priority to the user-provided number
+            task.setPriority(number);
+        } else if (number != 0) {
+            // Inform the user that the priority must be within the allowed range of 1 to 6
+            return "Allowed range for priority is 1-6.";
+        }
+
+        taskRepository.save(task);
         return null;
     }
 
     private String setTaskDate(Message userMessage, Task task) {
-        //TODO
+        String errorMessage = "Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\"";
+        // checking if user's message has text, since he can send a picture of document
+        if (!userMessage.hasText()) {
+            return errorMessage;
+        }
+        LocalDate date;
+        // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
+        try {
+            //TODO add ability to choose date by typing "in X days"
+            if(userMessage.getText().toLowerCase().contains("today")) {
+                // Get the current date
+                date = LocalDate.now();
+            } else if (userMessage.getText().toLowerCase().contains("tomorrow")) {
+                // Get the date of tomorrow
+                date = LocalDate.now().plusDays(1);
+            } else {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+                date = LocalDate.parse(userMessage.getText(), formatter);
+            }
+        } catch (DateTimeParseException e) {
+            return errorMessage;
+        }
+
+        task.setTargetDate(date);
+        taskRepository.save(task);
         return null;
     }
 
     private String setTaskDifficulty(Message userMessage, Task task) {
-        //TODO
+        // checking if user's message has text, since he can send a picture of document
+        if (!userMessage.hasText()) {
+            return "Please, send a number in range of 0 to 7 for the difficulty.";
+        }
+
+        int number;
+
+        // Verifying that user's response is a number
+        try {
+            number = Integer.parseInt(userMessage.getText());
+        } catch (NumberFormatException e) {
+            return "Please, send a number in range of 0 to 7 for the difficulty.";
+        }
+
+        // Check if the number is within the allowed range of 0 to 7
+        if (number >= 0 && number <= 7) {
+            // Set the task difficulty to the user-provided number
+            task.setDifficulty(number);
+        } else {
+            // Inform the user that the priority must be within the allowed range of 0 to 7
+            return "Allowed range for difficulty is 0-7.";
+        }
+
+        taskRepository.save(task);
         return null;
     }
 
     private String setTaskTag(Message userMessage, Task task) {
-        //TODO
+        // checking if user's message has text, since he can send a picture of document
+        if (!userMessage.hasText()) {
+            return "Please, send a text for the tag of your task";
+        }
+        task.setTag(userMessage.getText());
+
         return null;
     }
 
@@ -423,14 +448,75 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format("Name of the task set to: \"%s\"", msgText));
+                    answer.setText(String.format("Title of the task set to: \"%s\"", msgText));
+                    task.setState("COMPLETED");
                 }
             }
+            case "EDITING_DESCRIPTION" -> {
+                answerText = setTaskDescription(msg, task);
+
+                if (answerText != null) {
+                    answer.setText(answerText);
+                } else {
+                    answer.setText(String.format("Description of the task \"%s\" set to: \"%s\"",
+                            task.getName(),
+                            msgText));
+                    task.setState("COMPLETED");
+                }
+            }
+            case "EDITING_PRIORITY" -> {
+                answerText = setTaskPriority(msg, task);
+
+                if (answerText != null) {
+                    answer.setText(answerText);
+                } else {
+                    answer.setText(String.format("Priority of the task \"%s\" set to: \"%s\"",
+                            task.getName(),
+                            taskUtils.getPriorityDescription(task.getPriority())));
+                    task.setState("COMPLETED");
+                }
+            }
+            case "EDITING_DATE" -> {
+                answerText = setTaskDate(msg, task);
+
+                if (answerText != null) {
+                    answer.setText(answerText);
+                } else {
+                    answer.setText(String.format("Date of the task \"%s\" set to: \"%s\"",
+                            task.getName(),
+                            task.getTargetDate()));
+                    task.setState("COMPLETED");
+                }
+            }
+            case "EDITING_DIFFICULTY" -> {
+                answerText = setTaskDifficulty(msg, task);
+
+                if (answerText != null) {
+                    answer.setText(answerText);
+                } else {
+                    answer.setText(String.format("Difficulty of the task \"%s\" set to: \"%s\"",
+                            task.getName(),
+                            taskUtils.getDifficultyDescription(task.getDifficulty())));
+                    task.setState("COMPLETED");
+                }
+            }
+            case "EDITING_TAG" -> {
+                answerText = setTaskTag(msg, task);
+
+                if (answerText != null) {
+                    answer.setText(answerText);
+                } else {
+                    answer.setText(String.format("Tag of the task \"%s\" set to: \"%s\"",
+                            task.getName(),
+                            task.getTag()));
+                    task.setState("COMPLETED");
+                }
+            }
+
         }
 
         log.trace(answer.getText());
 
-        task.setState("COMPLETED");
         taskRepository.save(task);
 
         return answer;

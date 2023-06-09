@@ -35,6 +35,7 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final ProducerService producerService;
+    private static final int TASK_PER_PAGE = 4;
 
     public TaskServiceImpl(UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, ProducerService producerService) {
         this.userUtils = userUtils;
@@ -825,7 +826,7 @@ public class TaskServiceImpl implements TaskService {
         // TODO maybe create a separate class to hold info, instead of Map
         User user = userUtils.getUserByTag(update);
         List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetStatusAndDateAndId(user.getId());
-        String[] pages = new String[(int) Math.ceil(tasks.size() / 8.0)];
+        String[] pages = new String[(int) Math.ceil( tasks.size() / (float) TASK_PER_PAGE)];
         int pageTaskIndex = 0;
 
         if (tasks.size() == 0) {
@@ -842,13 +843,15 @@ public class TaskServiceImpl implements TaskService {
         // rows with tasks
         List<InlineKeyboardButton> secondRow = new ArrayList<>();
         List<InlineKeyboardButton> thirdRow = new ArrayList<>();
+        List<InlineKeyboardButton> fourthRow = new ArrayList<>();
+        List<InlineKeyboardButton> fifthRow = new ArrayList<>();
 
         // creating list of pages full of tasks
         int pageNumber = -1;
         int taskNumber = 0;
         boolean noCompletedFlowYet = true;
         for (int i = 0; i < tasks.size(); i++) {
-            if (i % 8 == 0) {
+            if (i % TASK_PER_PAGE == 0) {
                 pageNumber++;
                 taskNumber = 0;
                 pages[pageNumber] = "";
@@ -878,10 +881,14 @@ public class TaskServiceImpl implements TaskService {
             currentButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/TASK", pageNumber, taskNumber));
 
             if (pageNumber == pageIndex) {
-                if (taskNumber >= 4) {
-                    thirdRow.add(currentButton);
-                } else {
+                if (taskNumber <= TASK_PER_PAGE / 4 - 1 ) {
                     secondRow.add(currentButton);
+                } else if (taskNumber <= TASK_PER_PAGE / 4 * 2 - 1) {
+                    thirdRow.add(currentButton);
+                } else if (taskNumber <= TASK_PER_PAGE / 4 * 3 - 1) {
+                    fourthRow.add(currentButton);
+                } else {
+                    fifthRow.add(currentButton);
                 }
             }
 
@@ -913,6 +920,8 @@ public class TaskServiceImpl implements TaskService {
         keyboard.add(mainRow);
         keyboard.add(secondRow);
         keyboard.add(thirdRow);
+        keyboard.add(fourthRow);
+        keyboard.add(fifthRow);
         markup.setKeyboard(keyboard);
 
         // creating map to return pages and markup at the same time

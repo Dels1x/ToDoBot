@@ -49,10 +49,10 @@ public class TaskUtils {
     public String taskToString(Task task) {
         //TODO make so that if X is null, then don't put that info at all
         return String.format("""
-                ✏️ %s
-                💬 - %s
+                ✏️ *%s*
+                💬 - _%s_
                 
-                📅 %s ️⭐️️ %s ⚡️ %s 🏷️#%s""",
+                📅 _%s_ ️⭐️️ %s ⚡️ %s 🏷️#%s""",
                 task.getName() == null ? "Unnamed" : task.getName(),
                 task.getDescription() == null ? "No description" : task.getDescription(),
                 task.getTargetDate() == null ? "No date specified" : task.getTargetDate().toString(),
@@ -64,14 +64,14 @@ public class TaskUtils {
     public String taskToStringInDetail(Task task) {
         StringBuilder sb = new StringBuilder("Task:\n\n");
         sb.append(String.format("""
-                ✏️ Name: %s
-                💬 Description: %s
-                📅 Date: %s
-                ⭐️ Priority: %s
-                ⚡️ Difficulty: %s
+                ✏️ Name: *%s*
+                💬 Description: _%s_
+                📅 Date: _%s_
+                ⭐️ Priority: *%s*
+                ⚡️ Difficulty: *%s*
                 🏷️ Tag: #%s
-                ❔ Completed: %s
-                🕒 Created at: %s
+                ❔ Completed: _%s_
+                🕒 Created at: _%s_
                 """,
                 task.getName() == null ? "❌" : task.getName(),
                 task.getDescription() == null ? "❌" : task.getDescription(),
@@ -94,16 +94,16 @@ public class TaskUtils {
         String state = task.getState();
 
         return switch (state) {
-            case "CREATING_NAME" -> "Now let's create a description for your task, if you want to.";
+            case "CREATING_NAME" -> "Now let's create a *description* for your task, if you want to.";
             case "CREATING_DESCRIPTION" -> """
-                    We can also set a priority for your task - a number in range of 1-6.
+                    We can also set a *priority* for your task - a number in range of 1-6.
 
-                    If you don't want task to have a priority - press the skip button or type in "0".""";
+                    If you don't want task to have a *priority* - press the skip button or type in _0_.""";
             case "CREATING_PRIORITY" ->
                     """
-                            You can set a target completion date or a deadline for your task using the format "dd.MM.yyyy" (e.g. "30.04.2023")
+                            You can set a target *completion date* or a *deadline* for your task using the format "dd.MM.yyyy" (e.g. "30.04.2023")
 
-                            You can also use today/tomorrow""";
+                            *You can also use today/tomorrow*""";
             case "CREATING_DATE" -> """
                     If you want to set a specific difficulty for your task - we can also do that.
                     a number in range of 0-7. (0 - No difficulty; 1 - Very easy; 2 - Easy; 3 - Moderate; 4 - Challenging; 5 - Difficult; 6 - Very Difficult; 7 - Extremely difficult)""";

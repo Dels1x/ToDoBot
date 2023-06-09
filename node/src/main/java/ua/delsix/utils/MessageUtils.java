@@ -24,6 +24,7 @@ public class MessageUtils {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId);
         sendMessage.setText(text);
+        sendMessage.enableMarkdown(true);
 
         return sendMessage;
     }
@@ -42,6 +43,7 @@ public class MessageUtils {
         sendMessage.setChatId(chatId);
         sendMessage.setText(text);
         sendMessage.setReplyMarkup(markup);
+        sendMessage.enableMarkdown(true);
 
         return sendMessage;
     }
@@ -52,6 +54,7 @@ public class MessageUtils {
         editMessage.setMessageId(message.getMessageId());
         editMessage.setChatId(message.getChatId());
         editMessage.setText(text);
+        editMessage.enableMarkdown(true);
 
         return editMessage;
     }
@@ -63,6 +66,7 @@ public class MessageUtils {
         editMessage.setChatId(message.getChatId());
         editMessage.setText(text);
         editMessage.setReplyMarkup(markup);
+        editMessage.enableMarkdown(true);
 
         return editMessage;
     }

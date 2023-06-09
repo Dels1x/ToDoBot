@@ -97,7 +97,11 @@ public class MainServiceImpl implements MainService {
                 answerText = """
                         Available commands:
 
-                        - not yet""";
+                        _Task_ - see all of your tasks (and you can edit/remove/complete them using this command)
+                        _Create task_ - Create a task
+                        _/uncompleted _ - see all of your uncompleted tasks (W.I.P.)
+                        _/completed _ - see all of your completed tasks (W.I.P.)
+                        _/today _ - see all of your tasks dated for today (W.I.P.)""";
                 answerMessage.setText(answerText);
             }
             case START -> {
@@ -109,6 +113,8 @@ public class MainServiceImpl implements MainService {
             }
             case CREATE_TASK -> answerMessage = taskService.processCreateTask(update);
             case TASKS -> answerMessage = taskService.processGetAllTasks(update);
+            case UNCOMPLETED_TASKS, COMPLETED_TASKS, TODAY_TASKS ->
+                    answerMessage.setText("Work on this command is still in progress!");
             default -> {
                 //TODO handle editing
                 answerMessage.setText(answerText);

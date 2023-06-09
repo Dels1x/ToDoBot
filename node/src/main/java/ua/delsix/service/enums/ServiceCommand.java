@@ -8,10 +8,10 @@ public enum ServiceCommand {
     SKIP("Skip"),
     FINISH("Finish"),
     TASKS("Tasks"),
-    CREATE_TASK("Create task"),
-    REMOVE_TASK("Remove task"),
-    EDIT_TASK("Edit task");
-
+    UNCOMPLETED_TASKS("/uncompleted"),
+    COMPLETED_TASKS("/completed"),
+    TODAY_TASKS("/today"),
+    CREATE_TASK("Create task");
     private final String value;
 
     ServiceCommand(String value) {
@@ -21,10 +21,6 @@ public enum ServiceCommand {
     @Override
     public String toString() {
         return value;
-    }
-
-    public boolean equals(String value) {
-        return this.toString().equals(value);
     }
 
     public static ServiceCommand fromValue(String value) {

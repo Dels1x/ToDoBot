@@ -851,10 +851,10 @@ public class TaskServiceImpl implements TaskService {
             if (i % 8 == 0) {
                 pageNumber++;
                 taskNumber = 0;
-                pages[pageNumber] = "Tasks:\n\n";
+                pages[pageNumber] = "";
 
                 if(pageNumber == 0) {
-                    pages[pageNumber] = pages[pageNumber].concat("❌ Uncompleted:\n\n");
+                    pages[pageNumber] = pages[pageNumber].concat("❌ *Uncompleted:*\n\n");
                 }
             }
 
@@ -862,13 +862,19 @@ public class TaskServiceImpl implements TaskService {
             if(noCompletedFlowYet && tasks.get(i).getStatus().equals("Completed")) {
                 noCompletedFlowYet = false;
 
-                pages[pageNumber] = pages[pageNumber].concat("✅ Completed:\n\n");
+                pages[pageNumber] = pages[pageNumber].concat("*✅ Completed:*\n\n");
             }
             // get current task
             Task task = tasks.get(i);
 
+            // get task name for a button, and limit it only to 24 characters
+            String taskName = task.getName();
+            if(taskName.length() > 24) {
+                taskName =  taskName.substring(0, 21).concat("...");
+            }
+
             // set up button for current task
-            InlineKeyboardButton currentButton = new InlineKeyboardButton(task.getName());
+            InlineKeyboardButton currentButton = new InlineKeyboardButton(taskName);
             currentButton.setCallbackData(String.format("GET_ALL_TASKS/TASK/%d/%d/TASK", pageNumber, taskNumber));
 
             if (pageNumber == pageIndex) {

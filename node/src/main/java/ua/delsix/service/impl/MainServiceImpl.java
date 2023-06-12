@@ -112,8 +112,9 @@ public class MainServiceImpl implements MainService {
                 answerMessage.setText(answerText);
             }
             case CREATE_TASK -> answerMessage = taskService.processCreateTask(update);
-            case TASKS -> answerMessage = taskService.processGetAllTasks(update);
-            case UNCOMPLETED_TASKS, COMPLETED_TASKS, TODAY_TASKS ->
+            case TASKS -> answerMessage = taskService.processGetAllTasks(update, "getAllTasks");
+            case TODAY_TASKS -> answerMessage = taskService.processGetAllTasks(update, "getTodayTasks");
+            case UNCOMPLETED_TASKS, COMPLETED_TASKS ->
                     answerMessage.setText("Work on this command is still in progress!");
             default -> {
                 //TODO handle editing

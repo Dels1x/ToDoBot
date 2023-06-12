@@ -8,8 +8,8 @@ import ua.delsix.entity.Task;
 public interface TaskService {
     SendMessage processCreateTask(Update update);
     SendMessage processCreatingTask(Update update);
-    SendMessage processGetAllTasks(Update update);
     SendMessage editTask(Update update, Task task);
+    SendMessage processGetAllTasks(Update update, String operation);
     EditMessageText processTasksEdit(Update update);
     EditMessageText processTasksDelete(Update update);
     EditMessageText processGetAllTasksNext(Update update);

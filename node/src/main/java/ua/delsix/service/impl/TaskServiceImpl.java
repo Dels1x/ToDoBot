@@ -86,8 +86,6 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskOptional.get();
         String taskState = task.getState();
 
-        log.trace("Task State: "+taskState);
-
         User user = userUtils.getUserByTag(update);
 
         //set text according to task's state
@@ -134,7 +132,6 @@ public class TaskServiceImpl implements TaskService {
         // handling different task's states
         switch (taskState) {
             case "CREATING_NAME" -> {
-                log.trace("creating name");
                 answerText = setTaskName(userMessage, task);
 
                 if (answerText != null) {
@@ -144,7 +141,6 @@ public class TaskServiceImpl implements TaskService {
                 }
             }
             case "CREATING_DESCRIPTION" -> {
-                log.trace("creating description");
                 answerText = setTaskDescription(userMessage, task);
 
                 if (answerText != null) {
@@ -154,7 +150,6 @@ public class TaskServiceImpl implements TaskService {
                 }
             }
             case "CREATING_DATE" -> {
-                log.trace("creating date");
                 answerText = setTaskDate(userMessage, task);
 
                 if (answerText != null) {
@@ -164,7 +159,6 @@ public class TaskServiceImpl implements TaskService {
                 }
             }
             case "CREATING_PRIORITY" -> {
-                log.trace("creating priority");
                 answerText = setTaskPriority(userMessage, task);
 
                 if (answerText != null) {
@@ -628,7 +622,7 @@ public class TaskServiceImpl implements TaskService {
 
         pageIndex++;
 
-        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, "getAllTasks");
 
         assert pagesAndMarkup != null;
         String[] pages = pagesAndMarkup.keySet().iterator().next();
@@ -647,7 +641,7 @@ public class TaskServiceImpl implements TaskService {
 
         pageIndex--;
 
-        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, "getAllTasks");
 
         assert pagesAndMarkup != null;
         String[] pages = pagesAndMarkup.keySet().iterator().next();
@@ -771,10 +765,10 @@ public class TaskServiceImpl implements TaskService {
 
 
     @Override
-    public SendMessage processGetAllTasks(Update update) {
+    public SendMessage processGetAllTasks(Update update, String operation) {
         int pageIndex = 0;
 
-        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, operation);
 
         // handle case if user doesn't have any tasks yet
         if (pagesAndMarkup == null) {
@@ -806,7 +800,7 @@ public class TaskServiceImpl implements TaskService {
         String[] callbackData = callbackQuery.getData().split("/");
         int pageIndex = Integer.parseInt(callbackData[2]);
 
-        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex);
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, "getAllTasks");
 
         // handle case if user doesn't have any tasks yet (user can remove the task, so he could still have 0 tasks)
         if (pagesAndMarkup == null) {
@@ -820,16 +814,13 @@ public class TaskServiceImpl implements TaskService {
         return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
     }
 
-    private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex) {
+    private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex, String operation) {
         // TODO maybe create a separate class to hold info, instead of Map
         User user = userUtils.getUserByTag(update);
-        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetStatusAndDateAndId(user.getId());
-        String[] pages = new String[(int) Math.ceil( tasks.size() / (float) TASK_PER_PAGE)];
-        int pageTaskIndex = 0;
+        List<Task> tasks;
+        String[] pages;
 
-        if (tasks.size() == 0) {
-            return null;
-        }
+        int pageTaskIndex = 0;
 
         //keyboard setup
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
@@ -848,6 +839,21 @@ public class TaskServiceImpl implements TaskService {
         int pageNumber = -1;
         int taskNumber = 0;
         boolean noCompletedFlowYet = true;
+
+        switch(operation) {
+            case "getAllTasks" -> tasks = taskRepository.findAllByUserIdSortedByTargetStatusAndDateAndId(user.getId());
+            case "getTodayTasks" -> tasks = taskRepository.findTasksDatedForToday(user.getId(),LocalDate.now());
+            default -> {
+                return null;
+            }
+        }
+
+        if (tasks.size() == 0) {
+            return null;
+        }
+
+        pages = new String[(int) Math.ceil( tasks.size() / (float) TASK_PER_PAGE)];
+
         for (int i = 0; i < tasks.size(); i++) {
             if (i % TASK_PER_PAGE == 0) {
                 pageNumber++;

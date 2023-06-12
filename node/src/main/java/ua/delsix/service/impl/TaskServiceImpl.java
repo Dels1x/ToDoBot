@@ -60,7 +60,6 @@ public class TaskServiceImpl implements TaskService {
 
         // add one to user's task count
         User user = userUtils.getUserByTag(update);
-        user.setTaskCount(user.getTaskCount() + 1);
         userRepository.save(user);
 
         // saving the task to the table
@@ -87,14 +86,14 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskOptional.get();
         String taskState = task.getState();
 
+        log.trace("Task State: "+taskState);
+
         User user = userUtils.getUserByTag(update);
 
         //set text according to task's state
         answerMessage.setText(taskUtils.responseForEachState(task));
         ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
         answerMessage.setReplyMarkup(markup);
-
-        log.trace("Task: " + task);
         String answerText;
 
         if (userCommand.equals(ServiceCommand.CANCEL)) {
@@ -104,8 +103,6 @@ public class TaskServiceImpl implements TaskService {
             answerMessage.setText("Creation of the task was successfully cancelled.");
             answerMessage.setReplyMarkup(null);
 
-            // subtract one from user's tasks count and save it
-            user.setTaskCount(user.getTaskCount() - 1);
             userRepository.save(user);
 
             return answerMessage;
@@ -115,9 +112,7 @@ public class TaskServiceImpl implements TaskService {
             task.setState(taskState);
             taskRepository.save(task);
 
-            if (taskState.equals("COMPLETED")) {
-                answerMessage.setReplyMarkup(null);
-            }
+            log.trace("New task state: "+taskState);
 
             return answerMessage;
         } else if (userCommand.equals(ServiceCommand.FINISH)) {
@@ -139,6 +134,7 @@ public class TaskServiceImpl implements TaskService {
         // handling different task's states
         switch (taskState) {
             case "CREATING_NAME" -> {
+                log.trace("creating name");
                 answerText = setTaskName(userMessage, task);
 
                 if (answerText != null) {
@@ -148,16 +144,8 @@ public class TaskServiceImpl implements TaskService {
                 }
             }
             case "CREATING_DESCRIPTION" -> {
+                log.trace("creating description");
                 answerText = setTaskDescription(userMessage, task);
-
-                if (answerText != null) {
-                    answerMessage.setText(answerText);
-                } else {
-                    task.setState("CREATING_PRIORITY");
-                }
-            }
-            case "CREATING_PRIORITY" -> {
-                answerText = setTaskPriority(userMessage, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
@@ -166,7 +154,18 @@ public class TaskServiceImpl implements TaskService {
                 }
             }
             case "CREATING_DATE" -> {
+                log.trace("creating date");
                 answerText = setTaskDate(userMessage, task);
+
+                if (answerText != null) {
+                    answerMessage.setText(answerText);
+                } else {
+                    task.setState("CREATING_PRIORITY");
+                }
+            }
+            case "CREATING_PRIORITY" -> {
+                log.trace("creating priority");
+                answerText = setTaskPriority(userMessage, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
@@ -193,7 +192,7 @@ public class TaskServiceImpl implements TaskService {
                     task.setState("COMPLETED");
                     taskRepository.save(task);
 
-                    // add 1 to user's completed tasks count
+                    // add one to user's task completed count
                     user.setTaskCompleted(user.getTaskCompleted() + 1);
                     userRepository.save(user);
 
@@ -231,34 +230,6 @@ public class TaskServiceImpl implements TaskService {
         return null;
     }
 
-    private String setTaskPriority(Message userMessage, Task task) {
-        // checking if user's message has text, since he can send a picture of document
-        if (!userMessage.hasText()) {
-            return "Please, send a number for the priority of your task";
-        }
-
-        int number;
-
-        // Verifying that user's response is a number
-        try {
-            number = Integer.parseInt(userMessage.getText());
-        } catch (NumberFormatException e) {
-            return "Please, write a number from 1 to 6 for the priority.";
-        }
-
-        // Check if the number is within the allowed range of 1 to 6
-        if (number >= 1 && number <= 6) {
-            // Set the task priority to the user-provided number
-            task.setPriority(number);
-        } else if (number != 0) {
-            // Inform the user that the priority must be within the allowed range of 1 to 6
-            return "Allowed range for priority is 1-6.";
-        }
-
-        taskRepository.save(task);
-        return null;
-    }
-
     private String setTaskDate(Message userMessage, Task task) {
         String errorMessage = "Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\"";
         // checking if user's message has text, since he can send a picture of document
@@ -284,6 +255,34 @@ public class TaskServiceImpl implements TaskService {
         }
 
         task.setTargetDate(date);
+        taskRepository.save(task);
+        return null;
+    }
+
+    private String setTaskPriority(Message userMessage, Task task) {
+        // checking if user's message has text, since he can send a picture of document
+        if (!userMessage.hasText()) {
+            return "Please, send a number for the priority of your task";
+        }
+
+        int number;
+
+        // Verifying that user's response is a number
+        try {
+            number = Integer.parseInt(userMessage.getText());
+        } catch (NumberFormatException e) {
+            return "Please, write a number from 1 to 6 for the priority.";
+        }
+
+        // Check if the number is within the allowed range of 1 to 6
+        if (number >= 1 && number <= 6) {
+            // Set the task priority to the user-provided number
+            task.setPriority(number);
+        } else if (number != 0) {
+            // Inform the user that the priority must be within the allowed range of 1 to 6
+            return "Allowed range for priority is 1-6.";
+        }
+
         taskRepository.save(task);
         return null;
     }
@@ -465,18 +464,6 @@ public class TaskServiceImpl implements TaskService {
                     task.setState("COMPLETED");
                 }
             }
-            case "EDITING_PRIORITY" -> {
-                answerText = setTaskPriority(msg, task);
-
-                if (answerText != null) {
-                    answer.setText(answerText);
-                } else {
-                    answer.setText(String.format("Priority of the task \"%s\" set to: \"%s\"",
-                            task.getName(),
-                            taskUtils.getPriorityDescription(task.getPriority())));
-                    task.setState("COMPLETED");
-                }
-            }
             case "EDITING_DATE" -> {
                 answerText = setTaskDate(msg, task);
 
@@ -486,6 +473,18 @@ public class TaskServiceImpl implements TaskService {
                     answer.setText(String.format("Date of the task \"%s\" set to: \"%s\"",
                             task.getName(),
                             task.getTargetDate()));
+                    task.setState("COMPLETED");
+                }
+            }
+            case "EDITING_PRIORITY" -> {
+                answerText = setTaskPriority(msg, task);
+
+                if (answerText != null) {
+                    answer.setText(answerText);
+                } else {
+                    answer.setText(String.format("Priority of the task \"%s\" set to: \"%s\"",
+                            task.getName(),
+                            taskUtils.getPriorityDescription(task.getPriority())));
                     task.setState("COMPLETED");
                 }
             }
@@ -535,10 +534,10 @@ public class TaskServiceImpl implements TaskService {
         // setting up buttons
         InlineKeyboardButton nameButton = new InlineKeyboardButton("Edit name");
         InlineKeyboardButton descButton = new InlineKeyboardButton("Edit description");
+        InlineKeyboardButton dateButton = new InlineKeyboardButton("Edit date");
         InlineKeyboardButton priorityButton = new InlineKeyboardButton("Edit priority");
         InlineKeyboardButton difficultyButton = new InlineKeyboardButton("Edit difficulty");
         InlineKeyboardButton tagButton = new InlineKeyboardButton("Edit tag");
-        InlineKeyboardButton dateButton = new InlineKeyboardButton("Edit date");
         InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
 
         // setting callback data and adding buttons to keyboard
@@ -552,10 +551,10 @@ public class TaskServiceImpl implements TaskService {
 
         firstRow.add(nameButton);
         firstRow.add(descButton);
-        firstRow.add(priorityButton);
+        firstRow.add(dateButton);
+        secondRow.add(priorityButton);
         secondRow.add(difficultyButton);
         secondRow.add(tagButton);
-        secondRow.add(dateButton);
         secondRow.add(cancelButton);
 
         keyboard.add(firstRow);
@@ -794,8 +793,7 @@ public class TaskServiceImpl implements TaskService {
     // CreateTask methods
 
     private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task) {
-        ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
-        answerMessage.setReplyMarkup(markup);
+        answerMessage.setReplyMarkup(null);
         answerMessage.setText(taskUtils.responseForEachState(task));
 
         return answerMessage;
@@ -872,8 +870,8 @@ public class TaskServiceImpl implements TaskService {
 
             // get task name for a button, and limit it only to 24 characters
             String taskName = task.getName();
-            if(taskName.length() > 24) {
-                taskName =  taskName.substring(0, 21).concat("...");
+            if(taskName.length() > 64) {
+                taskName =  taskName.substring(0, 61).concat("...");
             }
 
             // set up button for current task

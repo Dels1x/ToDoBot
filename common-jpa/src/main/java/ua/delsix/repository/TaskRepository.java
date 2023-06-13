@@ -14,6 +14,10 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findAllByUserIdSortedByTargetDateAndIdAsc(Long userId);
     @Query("SELECT t FROM Task t WHERE t.userId = :userId ORDER BY t.status DESC, t.targetDate, t.id ASC")
     List<Task> findAllByUserIdSortedByTargetStatusAndDateAndId(Long userId);
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.targetDate = :today")
-    List<Task> findTasksDatedForToday(Long userId, LocalDate today);
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.targetDate = :today ORDER BY t.status DESC")
+    List<Task> findAllTasksDatedForTodaySortedByStatusDesc(Long userId, LocalDate today);
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.status = 'Completed' ORDER BY t.targetDate ASC")
+    List<Task> findAllCompletedTasksSortedByDateAsc(Long userId);
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.status = 'Uncompleted' ORDER BY t.targetDate ASC")
+    List<Task> findAllUncompletedTasksSortedByDateAsc(Long userId);
 }

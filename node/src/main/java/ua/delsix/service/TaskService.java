@@ -10,9 +10,9 @@ public interface TaskService {
     SendMessage processCreatingTask(Update update);
     SendMessage editTask(Update update, Task task);
     SendMessage processGetAllTasks(Update update, String operation);
-    EditMessageText processTasksEdit(Update update);
-    EditMessageText processTasksDelete(Update update);
-    EditMessageText processGetAllTasksNext(Update update);
-    EditMessageText processGetAllTasksPrev(Update update);
-    EditMessageText processGetTaskInDetail(Update update);
+    EditMessageText processTasksEdit(Update update, String operation);
+    EditMessageText processTasksDelete(Update update, String operation);
+    EditMessageText processGetAllTasksNext(Update update, String operation);
+    EditMessageText processGetAllTasksPrev(Update update, String operation);
+    EditMessageText processGetTaskInDetail(Update update, String operation);
 }

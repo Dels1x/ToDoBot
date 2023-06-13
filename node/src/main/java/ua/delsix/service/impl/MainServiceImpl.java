@@ -62,15 +62,16 @@ public class MainServiceImpl implements MainService {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
         EditMessageText answer = MessageUtils.editMessageGenerator(update, "Unknown error. Please contact developer using his telegram (@dels1x).");
+        String operation = callbackData[0];
 
         log.trace("CallbackData: "+ Arrays.toString(callbackData));
 
         // get answer based on callbackQuery
-        if (callbackData[0].equals("GET_ALL_TASKS")) {
+        if (operation.startsWith("GET")) {
             switch (callbackData[1]) {
-                case "NEXT" -> answer = taskService.processGetAllTasksNext(update);
-                case "PREV" -> answer = taskService.processGetAllTasksPrev(update);
-                case "TASK" -> answer = taskService.processGetTaskInDetail(update);
+                case "NEXT" -> answer = taskService.processGetAllTasksNext(update, operation);
+                case "PREV" -> answer = taskService.processGetAllTasksPrev(update, operation);
+                case "TASK" -> answer = taskService.processGetTaskInDetail(update, operation);
             }
         }
 
@@ -112,10 +113,10 @@ public class MainServiceImpl implements MainService {
                 answerMessage.setText(answerText);
             }
             case CREATE_TASK -> answerMessage = taskService.processCreateTask(update);
-            case TASKS -> answerMessage = taskService.processGetAllTasks(update, "getAllTasks");
-            case TODAY_TASKS -> answerMessage = taskService.processGetAllTasks(update, "getTodayTasks");
-            case UNCOMPLETED_TASKS, COMPLETED_TASKS ->
-                    answerMessage.setText("Work on this command is still in progress!");
+            case TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_ALL_TASKS");
+            case TODAY_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_TODAY_TASKS");
+            case COMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_COMPLETED_TASKS");
+            case UNCOMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_UNCOMPLETED_TASKS");
             default -> {
                 //TODO handle editing
                 answerMessage.setText(answerText);

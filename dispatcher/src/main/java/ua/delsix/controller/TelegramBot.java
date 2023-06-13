@@ -25,14 +25,20 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final UpdateController updateController;
     public static final ReplyKeyboardMarkup REPLY_KEYBOARD_MARKUP = new ReplyKeyboardMarkup();
 
+    // setting up keyboard
     static {
         List<KeyboardRow> keyboard = new ArrayList<>();
         KeyboardRow row1 = new KeyboardRow();
+        KeyboardRow row2 = new KeyboardRow();
 
         row1.add("Tasks");
         row1.add("Create task");
+        row2.add("Completed tasks");
+        row2.add("Uncompleted tasks");
+        row2.add("Today tasks");
 
         keyboard.add(row1);
+        keyboard.add(row2);
 
         REPLY_KEYBOARD_MARKUP.setKeyboard(keyboard);
     }

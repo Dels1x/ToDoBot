@@ -29,6 +29,11 @@ public enum ServiceCommand {
                 return command;
         }
 
-        return NON_COMMAND;
+        return switch (value) {
+            case "Completed tasks" -> COMPLETED_TASKS;
+            case "Uncompleted tasks" -> UNCOMPLETED_TASKS;
+            case "Today tasks" -> TODAY_TASKS;
+            default -> NON_COMMAND;
+        };
     }
 }

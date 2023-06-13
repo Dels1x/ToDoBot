@@ -95,7 +95,7 @@ public class TaskUtils {
         return switch (state) {
             case "CREATING_NAME" -> "Now let's create a *description* for your task, if you want to.";
             case "CREATING_DESCRIPTION" -> """
-                    You can set a target *completion date* or a *deadline* for your task using the format "dd.MM.yyyy" (e.g. "30.04.2023")
+                    You can set a target *completion date* or a *deadline* for your task using the format "yyyy-MM-dd" (e.g. "2023-04-30")
                         
                     *You can also use today/tomorrow*""\";
                     """;

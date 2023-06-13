@@ -7,11 +7,11 @@ public enum ServiceCommand {
     CANCEL("Cancel"),
     SKIP("Skip"),
     FINISH("Finish"),
-    TASKS("Tasks"),
+    TASKS("/tasks"),
     UNCOMPLETED_TASKS("/uncompleted"),
     COMPLETED_TASKS("/completed"),
     TODAY_TASKS("/today"),
-    CREATE_TASK("Create task");
+    CREATE_TASK("/create");
     private final String value;
 
     ServiceCommand(String value) {
@@ -30,6 +30,8 @@ public enum ServiceCommand {
         }
 
         return switch (value) {
+            case "Tasks" -> TASKS;
+            case "Create task" -> CREATE_TASK;
             case "Completed tasks" -> COMPLETED_TASKS;
             case "Uncompleted tasks" -> UNCOMPLETED_TASKS;
             case "Today tasks" -> TODAY_TASKS;

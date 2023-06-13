@@ -97,10 +97,8 @@ public class TaskServiceImpl implements TaskService {
         if (userCommand.equals(ServiceCommand.CANCEL)) {
             // Delete task from tasks table
             taskRepository.deleteById(task.getId());
-
             answerMessage.setText("Creation of the task was successfully cancelled.");
             answerMessage.setReplyMarkup(null);
-
             userRepository.save(user);
 
             return answerMessage;
@@ -110,7 +108,9 @@ public class TaskServiceImpl implements TaskService {
             task.setState(taskState);
             taskRepository.save(task);
 
-            log.trace("New task state: "+taskState);
+            if(taskState.equals("CREATING_DATE")) {
+                answerMessage.setReplyMarkup(MarkupUtils.getDateMarkup());
+            }
 
             return answerMessage;
         } else if (userCommand.equals(ServiceCommand.FINISH)) {
@@ -146,6 +146,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answerMessage.setText(answerText);
                 } else {
+                    answerMessage.setReplyMarkup(MarkupUtils.getDateMarkup());
                     task.setState("CREATING_DATE");
                 }
             }
@@ -225,7 +226,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private String setTaskDate(Message userMessage, Task task) {
-        String errorMessage = "Please enter the task target completion date in the format \"dd.MM.yyyy\", e.g. \"30.04.2023\"";
+        String errorMessage = "Please enter the task target completion date in the format \"yyyy-MM-dd\", e.g. \"2023-04-30\"";
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
             return errorMessage;
@@ -241,7 +242,7 @@ public class TaskServiceImpl implements TaskService {
                 // Get the date of tomorrow
                 date = LocalDate.now().plusDays(1);
             } else {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 date = LocalDate.parse(userMessage.getText(), formatter);
             }
         } catch (DateTimeParseException e) {

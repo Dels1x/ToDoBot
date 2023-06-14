@@ -17,4 +17,6 @@ public interface TaskService {
     EditMessageText processGetTaskInDetail(Update update, String operation);
     SendMessage processDeleteAllCompletedTasksConfirmation(Update update);
     EditMessageText processDeleteAllCompletedTasks(Update update);
+    SendMessage processDeleteAllTasksConfirmation(Update update);
+    EditMessageText processDeleteAllTasks(Update update);
 }

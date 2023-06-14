@@ -77,6 +77,10 @@ public class MainServiceImpl implements MainService {
             if (callbackData[1].equals("CONFIRM")) {
                 answer = taskService.processDeleteAllCompletedTasks(update);
             }
+        } else if (operation.startsWith("DELETE_ALL")) {
+            if (callbackData[1].equals("CONFIRM")) {
+                answer = taskService.processDeleteAllTasks(update);
+            }
         }
 
         if(answer == null) {
@@ -124,6 +128,7 @@ public class MainServiceImpl implements MainService {
             case COMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_COMPLETED_TASKS");
             case UNCOMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_UNCOMPLETED_TASKS");
             case DELETE_COMPLETED_TASKS -> answerMessage = taskService.processDeleteAllCompletedTasksConfirmation(update);
+            case DELETE_ALL_TASKS -> answerMessage = taskService.processDeleteAllTasksConfirmation(update);
             default -> {
                 //TODO handle editing
                 answerMessage.setText(answerText);

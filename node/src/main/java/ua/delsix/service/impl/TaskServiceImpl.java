@@ -600,7 +600,7 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
 
         return MessageUtils.sendMessageGenerator(update,
-                "Do you really want to delete all of your completed tasks?",
+                "Are you sure you want to do it? All your completed tasks will be deleted, hence this will also delete all statistics related to the tasks",
                 markup);
     }
 
@@ -611,6 +611,29 @@ public class TaskServiceImpl implements TaskService {
 
         return MessageUtils.editMessageGenerator(update,
                 "All completed tasks successfully deleted!");
+    }
+
+    @Override
+    public SendMessage processDeleteAllTasksConfirmation(Update update) {
+        // setting up keyboard
+        List<InlineKeyboardButton> keyboard = new ArrayList<>();
+        InlineKeyboardButton confirmButton = new InlineKeyboardButton("Confirm");
+        confirmButton.setCallbackData("DELETE_ALL/CONFIRM");
+        keyboard.add(confirmButton);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
+
+        return MessageUtils.sendMessageGenerator(update,
+                "Are you sure you want to do it? ALL your tasks will be deleted, hence this will also delete all your statistics",
+                markup);
+    }
+
+    @Override
+    public EditMessageText processDeleteAllTasks(Update update) {
+        User user = userUtils.getUserByTag(update);
+        taskRepository.deleteAllTasks(user.getId());
+
+        return MessageUtils.editMessageGenerator(update,
+                "All your tasks now aresuccessfully deleted!");
     }
 
     @Override

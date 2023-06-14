@@ -51,13 +51,20 @@ public class TaskUtils {
                         ✏️ *%s*
                         💬 - _%s_
                                         
-                        📅 _%s_ ️⭐️️ %s ⚡️ %s 🏷️#%s""",
-                task.getName() == null ? "Unnamed" : task.getName(),
-                task.getDescription() == null ? "No description" : task.getDescription(),
-                task.getTargetDate() == null ? "No date specified" : task.getTargetDate().toString(),
-                getPriorityDescription(task.getPriority()),
-                getDifficultyDescription(task.getDifficulty()),
-                task.getTag() == null ? "Untagged" : task.getTag());
+                        _%s%s%s🏷️#%s_""",
+                task.getName() == null ? "" :
+                        task.getName(),
+                task.getDescription() == null ? "no description" :
+                        task.getDescription(),
+                task.getTargetDate() == null ? "No date specified" :
+                        String.format("📅 %s ", task.getTargetDate()),
+                getPriorityDescription(task.getPriority()).equals("❌") ? "" :
+                        String.format("⭐️️ %s ", getPriorityDescription(task.getPriority())),
+                getDifficultyDescription(task.getDifficulty()).equals("❌") ? "" :
+                        String.format("⚡️ %s ", getDifficultyDescription(task.getDifficulty())),
+                task.getTag() == null ? "Untagged" :
+                        task.getTag()
+        );
     }
 
     public String taskToStringInDetail(Task task) {

@@ -931,7 +931,13 @@ public class TaskServiceImpl implements TaskService {
             }
 
             // set up button for current task
-            InlineKeyboardButton currentButton = new InlineKeyboardButton(taskName);
+            InlineKeyboardButton currentButton;
+
+            if(task.getStatus().equals("Completed")) {
+                currentButton = new InlineKeyboardButton("✅ ".concat(taskName));
+            } else {
+                currentButton = new InlineKeyboardButton("❌ ".concat(taskName));
+            }
             currentButton.setCallbackData(String.format("%s/TASK/%d/%d/TASK", operation, pageNumber, taskNumber));
 
             if (pageNumber == pageIndex) {

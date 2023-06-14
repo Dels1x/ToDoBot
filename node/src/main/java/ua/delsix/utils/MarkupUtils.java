@@ -44,4 +44,24 @@ public class MarkupUtils {
         markup.setKeyboard(keyboard);
         return markup;
     }
+
+    public static ReplyKeyboardMarkup getDateMarkupWithoutSkipCancelFinish() {
+        LocalDate today = LocalDate.now();
+
+        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        KeyboardRow row1 = new KeyboardRow();
+        KeyboardRow row2 = new KeyboardRow();
+
+        row1.add("Today");
+        row1.add("Tomorrow");
+        row2.add(String.valueOf(today.plusDays(2)));
+        row2.add(String.valueOf(today.plusDays(3)));
+        row2.add(String.valueOf(today.plusDays(4)));
+
+        keyboard.add(row1);
+        keyboard.add(row2);
+        markup.setKeyboard(keyboard);
+        return markup;
+    }
 }

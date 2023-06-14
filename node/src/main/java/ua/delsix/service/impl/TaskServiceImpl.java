@@ -387,6 +387,16 @@ public class TaskServiceImpl implements TaskService {
                                 update,
                                 text));
             }
+            case "DATE" -> {
+                task.setState("EDITING_DATE");
+                String text = String.format("Enter a new date for task \"%s\"", task.getName());
+                log.trace("Sending answer to ProducerService");
+                producerService.produceAnswer(
+                        MessageUtils.sendMessageGenerator(
+                                update,
+                                text,
+                                MarkupUtils.getDateMarkupWithoutSkipCancelFinish()));
+            }
             case "PRIOR" -> {
                 task.setState("EDITING_PRIORITY");
                 String text = String.format("Enter a new priority for task \"%s\"", task.getName());
@@ -408,15 +418,6 @@ public class TaskServiceImpl implements TaskService {
             case "TAG" -> {
                 task.setState("EDITING_TAG");
                 String text = String.format("Enter a new tag for task \"%s\"", task.getName());
-                log.trace("Sending answer to ProducerService");
-                producerService.produceAnswer(
-                        MessageUtils.sendMessageGenerator(
-                                update,
-                                text));
-            }
-            case "DATE" -> {
-                task.setState("EDITING_DATE");
-                String text = String.format("Enter a new date for task \"%s\"", task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(
@@ -567,6 +568,31 @@ public class TaskServiceImpl implements TaskService {
     }
 
     // DELETE methods
+
+
+
+    @Override
+    public SendMessage processDeleteAllCompletedTasksConfirmation(Update update) {
+        // setting up keyboard
+        List<InlineKeyboardButton> keyboard = new ArrayList<>();
+        InlineKeyboardButton confirmButton = new InlineKeyboardButton("Confirm");
+        confirmButton.setCallbackData("DELETE_ALL_COMPLETED/CONFIRM");
+        keyboard.add(confirmButton);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
+
+        return MessageUtils.sendMessageGenerator(update,
+                "Do you really want to delete all of your completed tasks?",
+                markup);
+    }
+
+    @Override
+    public EditMessageText processDeleteAllCompletedTasks(Update update) {
+        User user = userUtils.getUserByTag(update);
+        taskRepository.deleteAllCompletedTasks(user.getId());
+
+        return MessageUtils.editMessageGenerator(update,
+                "All completed tasks successfully deleted!");
+    }
 
     @Override
     public EditMessageText processTasksDelete(Update update, String operation) {
@@ -792,7 +818,6 @@ public class TaskServiceImpl implements TaskService {
         return MessageUtils.editMessageGenerator(update, taskUtils.taskToStringInDetail(task), markup);
     }
 
-
     @Override
     public SendMessage processGetAllTasks(Update update, String operation) {
         int pageIndex = 0;
@@ -963,16 +988,16 @@ public class TaskServiceImpl implements TaskService {
         // get tasks for different operations
         switch (operation) {
             case "GET_ALL_TASKS" -> {
-                return taskRepository.findAllByUserIdSortedByTargetStatusAndDateAndId(user.getId());
+                return taskRepository.findAll(user.getId());
             }
             case "GET_TODAY_TASKS" -> {
-                return taskRepository.findAllTasksDatedForTodaySortedByStatusDesc(user.getId(), LocalDate.now());
+                return taskRepository.findAllTasksDatedForToday(user.getId(), LocalDate.now());
             }
             case "GET_COMPLETED_TASKS" -> {
-                return taskRepository.findAllCompletedTasksSortedByDateAsc(user.getId());
+                return taskRepository.findAllCompletedTasks(user.getId());
             }
             case "GET_UNCOMPLETED_TASKS" -> {
-                return taskRepository.findAllUncompletedTasksSortedByDateAsc(user.getId());
+                return taskRepository.findAllUncompletedTasks(user.getId());
             }
             default -> {
                 log.error("Unknown operation: " + operation);

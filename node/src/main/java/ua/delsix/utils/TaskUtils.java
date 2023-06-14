@@ -100,9 +100,14 @@ public class TaskUtils {
                     *You can also use today/tomorrow*""\";
                     """;
             case "CREATING_DATE" -> """
-                    We can also set a *priority* for your task - a number in range of 1-6.
-                            
-                    If you don't want task to have a *priority* - press the skip button or type in _0_.""\";
+                    You can also set a *priority* for your task - a number in range of 1-6:
+                   
+                    1 = Not important
+                    2 = Low priority
+                    3 = Medium priority
+                    4 = High priority
+                    5 = Very high priority
+                    6 = Urgent priority
                     """;
 
             case "CREATING_PRIORITY" -> """

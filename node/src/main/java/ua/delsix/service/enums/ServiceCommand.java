@@ -11,7 +11,9 @@ public enum ServiceCommand {
     UNCOMPLETED_TASKS("/uncompleted"),
     COMPLETED_TASKS("/completed"),
     TODAY_TASKS("/today"),
-    CREATE_TASK("/create");
+    CREATE_TASK("/create"),
+    DELETE_COMPLETED_TASKS("/clearCompleted"),
+    DELETE_ALL_TASKS("/clearAll");
     private final String value;
 
     ServiceCommand(String value) {

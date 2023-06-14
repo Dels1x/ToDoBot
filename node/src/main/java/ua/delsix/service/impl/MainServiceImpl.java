@@ -73,6 +73,10 @@ public class MainServiceImpl implements MainService {
                 case "PREV" -> answer = taskService.processGetAllTasksPrev(update, operation);
                 case "TASK" -> answer = taskService.processGetTaskInDetail(update, operation);
             }
+        } else if (operation.startsWith("DELETE_ALL_COMPLETED")) {
+            if (callbackData[1].equals("CONFIRM")) {
+                answer = taskService.processDeleteAllCompletedTasks(update);
+            }
         }
 
         if(answer == null) {
@@ -100,9 +104,11 @@ public class MainServiceImpl implements MainService {
 
                         _/tasks_ - see all of your tasks (and you can edit/remove/complete them using this command)
                         _/create_ - Create task
-                        _/uncompleted _ - see all of your uncompleted tasks (W.I.P.)
-                        _/completed _ - see all of your completed tasks (W.I.P.)
-                        _/today _ - see all of your tasks dated for today (W.I.P.)""";
+                        _/uncompleted _ - see all of your uncompleted tasks
+                        _/completed _ - see all of your completed tasks
+                        _/today _ - see all of your tasks dated for today
+                        _/clearCompleted_ - delete all your completed tasks (W.I.P)
+                        _/clearAll_ - delete all your tasks (W.I.P)""";
                 answerMessage.setText(answerText);
             }
             case START -> {
@@ -117,6 +123,7 @@ public class MainServiceImpl implements MainService {
             case TODAY_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_TODAY_TASKS");
             case COMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_COMPLETED_TASKS");
             case UNCOMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_UNCOMPLETED_TASKS");
+            case DELETE_COMPLETED_TASKS -> answerMessage = taskService.processDeleteAllCompletedTasksConfirmation(update);
             default -> {
                 //TODO handle editing
                 answerMessage.setText(answerText);
@@ -130,7 +137,7 @@ public class MainServiceImpl implements MainService {
                     if(taskState.startsWith("CREAT")) {
                         answerMessage = taskService.processCreatingTask(update);
                     } else {
-                        List<Task> tasks = taskRepository.findAllByUserIdSortedByTargetDateAndIdAsc(user.getId());
+                        List<Task> tasks = taskRepository.findAll(user.getId());
 
                         Optional<Task> editTaskOptional = tasks.stream()
                                 .filter(task -> task.getState().startsWith("EDIT"))

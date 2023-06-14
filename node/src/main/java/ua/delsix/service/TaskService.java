@@ -15,4 +15,6 @@ public interface TaskService {
     EditMessageText processGetAllTasksNext(Update update, String operation);
     EditMessageText processGetAllTasksPrev(Update update, String operation);
     EditMessageText processGetTaskInDetail(Update update, String operation);
+    SendMessage processDeleteAllCompletedTasksConfirmation(Update update);
+    EditMessageText processDeleteAllCompletedTasks(Update update);
 }

@@ -119,7 +119,16 @@ public class TaskUtils {
 
             case "CREATING_PRIORITY" -> """
                     If you want to set a specific difficulty for your task - we can also do that.
-                    a number in range of 0-7. (0 - No difficulty; 1 - Very easy; 2 - Easy; 3 - Moderate; 4 - Challenging; 5 - Difficult; 6 - Very Difficult; 7 - Extremely difficult)""";
+                  
+                    Enter a number in range of 0-7:
+                    0 = No difficulty
+                    1 = Very easy
+                    2 = Easy
+                    3 = Moderate
+                    4 = Challenging
+                    5 = Difficult
+                    6 = Very Difficult
+                    7 = Extremely difficult""";
             case "CREATING_DIFFICULTY" ->
                     "If you want to - you can set a specific tag for the task. It could be something like: (Goals, Programming, Chores etc.\"";
             case "CREATING_TAG", "COMPLETED" -> String.format("""

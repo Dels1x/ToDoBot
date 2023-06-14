@@ -399,7 +399,15 @@ public class TaskServiceImpl implements TaskService {
             }
             case "PRIOR" -> {
                 task.setState("EDITING_PRIORITY");
-                String text = String.format("Enter a new priority for task \"%s\"", task.getName());
+                String text = String.format("""
+                        Enter a new priority for task "%s"
+                        
+                        1 = Not important
+                        2 = Low priority
+                        3 = Medium priority
+                        4 = High priority
+                        5 = Very high priority
+                        6 = Urgent priority""", task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(
@@ -408,7 +416,18 @@ public class TaskServiceImpl implements TaskService {
             }
             case "DIFF" -> {
                 task.setState("EDITING_DIFFICULTY");
-                String text = String.format("Enter a new difficulty for task \"%s\"", task.getName());
+                String text = String.format("""
+                        Enter a new difficulty for task "%s"
+                        
+                        Enter a number in range of 0-7:
+                        0 = No difficulty
+                        1 = Very easy
+                        2 = Easy
+                        3 = Moderate
+                        4 = Challenging
+                        5 = Difficult
+                        6 = Very Difficult
+                        7 = Extremely difficult""", task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(

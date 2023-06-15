@@ -46,12 +46,11 @@ public class TaskUtils {
     }
 
     public String taskToString(Task task) {
-        //TODO make so that if X is null, then don't put that info at all
         return String.format("""
                         ✏️ *%s*
                         💬 - _%s_
                                         
-                        _%s%s%s🏷️#%s_""",
+                        _%s%s%s 🏷️#%s_""",
                 task.getName() == null ? "" :
                         task.getName(),
                 task.getDescription() == null ? "no description" :
@@ -63,21 +62,20 @@ public class TaskUtils {
                 getDifficultyDescription(task.getDifficulty()).equals("❌") ? "" :
                         String.format("⚡️ %s ", getDifficultyDescription(task.getDifficulty())),
                 task.getTag() == null ? "Untagged" :
-                        task.getTag()
-        );
+                        task.getTag());
     }
 
     public String taskToStringInDetail(Task task) {
-        StringBuilder sb = new StringBuilder("Task:\n\n");
-        sb.append(String.format("""
+        return "Task:\n\n" + String.format("""
                         ✏️ Name: *%s*
                         💬 Description: _%s_
                         📅 Date: _%s_
                         ⭐️ Priority: *%s*
                         ⚡️ Difficulty: *%s*
                         🏷️ Tag: #%s
-                        ❔ Completed: _%s_
                         🕒 Created at: _%s_
+                        ❔ Completed: _%s_
+                        %s
                         """,
                 task.getName() == null ? "❌" : task.getName(),
                 task.getDescription() == null ? "❌" : task.getDescription(),
@@ -85,15 +83,11 @@ public class TaskUtils {
                 getPriorityDescription(task.getPriority()),
                 getDifficultyDescription(task.getDifficulty()),
                 task.getTag() == null ? "❌" : task.getTag(),
+                task.getCreatedAt().toString(),
                 task.getStatus() == null ? "❌" :
                         task.getStatus().equals("Completed") ? "✅" : "❌",
-                task.getCreatedAt().toString()));
-
-        if (task.getCompletionDate() != null) {
-            sb.append(String.format("\nCompletion date: %s", task.getCompletionDate()));
-        }
-
-        return sb.toString();
+                task.getCompletionDate() == null ? "" :
+                        "⌛️ Completed at: ".concat(task.getCompletionDate().toString()));
     }
 
     public String responseForEachState(Task task) {

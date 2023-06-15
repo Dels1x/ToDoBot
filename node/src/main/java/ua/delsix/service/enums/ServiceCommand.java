@@ -26,6 +26,10 @@ public enum ServiceCommand {
     }
 
     public static ServiceCommand fromValue(String value) {
+        if (value == null) {
+            return NON_COMMAND;
+        }
+
         for(ServiceCommand command: ServiceCommand.values()) {
             if(command.toString().equals(value))
                 return command;

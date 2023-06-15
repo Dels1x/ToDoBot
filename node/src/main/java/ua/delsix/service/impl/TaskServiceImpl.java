@@ -807,9 +807,11 @@ public class TaskServiceImpl implements TaskService {
         // handle a button to complete a task
         if (callbackData[4].equals("COMPLETE")) {
             task.setStatus("Completed");
+            task.setCompletionDate(LocalDate.now());
             taskRepository.save(task);
         } else if (callbackData[4].equals("UNCOMPLETE")) {
             task.setStatus("Uncompleted");
+            task.setCompletionDate(null);
             taskRepository.save(task);
         }
 

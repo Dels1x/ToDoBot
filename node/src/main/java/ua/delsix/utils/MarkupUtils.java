@@ -1,5 +1,6 @@
 package ua.delsix.utils;
 
+import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -13,6 +14,7 @@ import ua.delsix.repository.TaskRepository;
 import java.time.LocalDate;
 import java.util.*;
 
+@Log4j
 @Component
 public class MarkupUtils {
     private final UserUtils userUtils;
@@ -147,7 +149,7 @@ public class MarkupUtils {
         List<InlineKeyboardButton> secTagsKeyboard = new ArrayList<>();
         List<InlineKeyboardButton> thirdTagsKeyboard = new ArrayList<>();
 
-        int pageCount = (int) Math.ceil(tags.size() / 9.0);
+        int pageCount = (int) Math.ceil(tags.size() / 9.0) - 1;
 
         byte x = 0;
         byte y = 0;

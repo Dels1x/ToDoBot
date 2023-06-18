@@ -30,6 +30,7 @@ import java.util.*;
 @Service
 @Log4j
 public class TaskServiceImpl implements TaskService {
+    private final MarkupUtils markupUtils;
     private final UserUtils userUtils;
     private final TaskUtils taskUtils;
     private final TaskRepository taskRepository;
@@ -37,7 +38,8 @@ public class TaskServiceImpl implements TaskService {
     private final ProducerService producerService;
     private static final int TASK_PER_PAGE = 4;
 
-    public TaskServiceImpl(UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, ProducerService producerService) {
+    public TaskServiceImpl(MarkupUtils markupUtils, UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, ProducerService producerService) {
+        this.markupUtils = markupUtils;
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
@@ -69,7 +71,7 @@ public class TaskServiceImpl implements TaskService {
         return MessageUtils.sendMessageGenerator(
                 update,
                 "Alright, a new task. To proceed, let's choose a name for the task first.",
-                MarkupUtils.getCancelSkipFinishMarkup() );
+                markupUtils.getCancelSkipFinishMarkup());
     }
 
     @Override
@@ -90,7 +92,7 @@ public class TaskServiceImpl implements TaskService {
 
         //set text according to task's state
         answerMessage.setText(taskUtils.responseForEachState(task));
-        ReplyKeyboardMarkup markup = MarkupUtils.getCancelSkipFinishMarkup();
+        ReplyKeyboardMarkup markup = markupUtils.getCancelSkipFinishMarkup();
         answerMessage.setReplyMarkup(markup);
         String answerText;
 
@@ -108,8 +110,10 @@ public class TaskServiceImpl implements TaskService {
             task.setState(taskState);
             taskRepository.save(task);
 
-            if(taskState.equals("CREATING_DATE")) {
-                answerMessage.setReplyMarkup(MarkupUtils.getDateMarkup());
+            switch (taskState) {
+                case "CREATING_DATE" -> answerMessage.setReplyMarkup(markupUtils.getDateMarkup());
+                case "CREATING_TAG" -> answerMessage.setReplyMarkup(markupUtils.getTagsReplyMarkup(update));
+                case "COMPLETED" -> answerMessage.setReplyMarkup(null);
             }
 
             return answerMessage;
@@ -146,7 +150,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answerMessage.setText(answerText);
                 } else {
-                    answerMessage.setReplyMarkup(MarkupUtils.getDateMarkup());
+                    answerMessage.setReplyMarkup(markupUtils.getDateMarkup());
                     task.setState("CREATING_DATE");
                 }
             }
@@ -174,6 +178,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answerMessage.setText(answerText);
                 } else {
+                    answerMessage.setReplyMarkup(markupUtils.getTagsReplyMarkup(update));
                     task.setState("CREATING_TAG");
                 }
             }
@@ -235,7 +240,7 @@ public class TaskServiceImpl implements TaskService {
         // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
         try {
             //TODO add ability to choose date by typing "in X days"
-            if(userMessage.getText().toLowerCase().contains("today")) {
+            if (userMessage.getText().toLowerCase().contains("today")) {
                 // Get the current date
                 date = LocalDate.now();
             } else if (userMessage.getText().toLowerCase().contains("tomorrow")) {
@@ -350,9 +355,9 @@ public class TaskServiceImpl implements TaskService {
         Task taskToEdit = tasks.get(taskIndex);
 
         // calling editTask method, if callbackData presses any edit button and return null to MainService
-        if(callbackData.length == 6) {
-            if(taskSwitchStateToEdit(taskToEdit, update)) {
-               return processGetTaskInDetail(update, operation);
+        if (callbackData.length == 6) {
+            if (taskSwitchStateToEdit(taskToEdit, update)) {
+                return processGetTaskInDetail(update, operation);
             }
 
             return null;
@@ -361,7 +366,7 @@ public class TaskServiceImpl implements TaskService {
         return MessageUtils.editMessageGenerator(
                 update,
                 taskUtils.taskToStringInDetail(taskToEdit),
-                getEditMarkup(callbackData, operation));
+                markupUtils.getEditMarkup(callbackData, operation));
     }
 
     private boolean taskSwitchStateToEdit(Task task, Update update) {
@@ -395,13 +400,13 @@ public class TaskServiceImpl implements TaskService {
                         MessageUtils.sendMessageGenerator(
                                 update,
                                 text,
-                                MarkupUtils.getDateMarkupWithoutSkipCancelFinish()));
+                                markupUtils.getDateMarkupWithoutSkipCancelFinish()));
             }
             case "PRIOR" -> {
                 task.setState("EDITING_PRIORITY");
                 String text = String.format("""
                         Enter a new priority for task "%s"
-                        
+                                                
                         1 = Not important
                         2 = Low priority
                         3 = Medium priority
@@ -418,7 +423,7 @@ public class TaskServiceImpl implements TaskService {
                 task.setState("EDITING_DIFFICULTY");
                 String text = String.format("""
                         Enter a new difficulty for task "%s"
-                        
+                                                
                         Enter a number in range of 0-7:
                         0 = No difficulty
                         1 = Very easy
@@ -441,7 +446,8 @@ public class TaskServiceImpl implements TaskService {
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(
                                 update,
-                                text));
+                                text,
+                                markupUtils.getTagsReplyMarkupWithoutCancelSkipFinish(update)));
             }
             case "CANCEL" -> {
                 task.setState("COMPLETED");
@@ -464,7 +470,7 @@ public class TaskServiceImpl implements TaskService {
         String answerText;
 
 
-        switch(task.getState()) {
+        switch (task.getState()) {
             case "EDITING_NAME" -> {
                 answerText = setTaskName(msg, task);
 
@@ -545,49 +551,7 @@ public class TaskServiceImpl implements TaskService {
         return answer;
     }
 
-    private InlineKeyboardMarkup getEditMarkup(String[] callbackData, String operation) {
-        int pageIndex = Integer.parseInt(callbackData[2]);
-        int pageTaskIndex = Integer.parseInt(callbackData[3]);
-
-        // setting up the keyboard
-        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
-        List<InlineKeyboardButton> firstRow = new ArrayList<>();
-        List<InlineKeyboardButton> secondRow = new ArrayList<>();
-
-        // setting up buttons
-        InlineKeyboardButton nameButton = new InlineKeyboardButton("Edit name");
-        InlineKeyboardButton descButton = new InlineKeyboardButton("Edit description");
-        InlineKeyboardButton dateButton = new InlineKeyboardButton("Edit date");
-        InlineKeyboardButton priorityButton = new InlineKeyboardButton("Edit priority");
-        InlineKeyboardButton difficultyButton = new InlineKeyboardButton("Edit difficulty");
-        InlineKeyboardButton tagButton = new InlineKeyboardButton("Edit tag");
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
-
-        // setting callback data and adding buttons to keyboard
-        nameButton.setCallbackData(String.format("%s/TASK/%d/%d/EDIT/NAME", operation, pageIndex, pageTaskIndex));
-        descButton.setCallbackData(String.format("%s/TASK/%d/%d/EDIT/DESC", operation, pageIndex, pageTaskIndex));
-        priorityButton.setCallbackData(String.format("%s/TASK/%d/%d/EDIT/PRIOR", operation, pageIndex, pageTaskIndex));
-        difficultyButton.setCallbackData(String.format("%s/TASK/%d/%d/EDIT/DIFF", operation, pageIndex, pageTaskIndex));
-        tagButton.setCallbackData(String.format("%s/TASK/%d/%d/EDIT/TAG", operation, pageIndex, pageTaskIndex));
-        dateButton.setCallbackData(String.format("%s/TASK/%d/%d/EDIT/DATE", operation, pageIndex, pageTaskIndex));
-        cancelButton.setCallbackData(String.format("%s/TASK/%d/%d/EDIT/CANCEL", operation, pageIndex, pageTaskIndex));
-
-        firstRow.add(nameButton);
-        firstRow.add(descButton);
-        firstRow.add(dateButton);
-        secondRow.add(priorityButton);
-        secondRow.add(difficultyButton);
-        secondRow.add(tagButton);
-        secondRow.add(cancelButton);
-
-        keyboard.add(firstRow);
-        keyboard.add(secondRow);
-
-        return new InlineKeyboardMarkup(keyboard);
-    }
-
     // DELETE methods
-
 
 
     @Override
@@ -698,50 +662,12 @@ public class TaskServiceImpl implements TaskService {
     // GET methods
 
     @Override
-    public EditMessageText processGetAllTasksNext(Update update, String operation) {
-        CallbackQuery callbackQuery = update.getCallbackQuery();
-        String[] callbackData = callbackQuery.getData().split("/");
-        int pageIndex = Integer.parseInt(callbackData[2]);
-
-        log.trace("callbackData: " + Arrays.toString(callbackData));
-
-        pageIndex++;
-
-        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, operation);
-
-        assert pagesAndMarkup != null;
-        String[] pages = pagesAndMarkup.keySet().iterator().next();
-        InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
-
-        return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
-    }
-
-    @Override
-    public EditMessageText processGetAllTasksPrev(Update update, String operation) {
-        CallbackQuery callbackQuery = update.getCallbackQuery();
-        String[] callbackData = callbackQuery.getData().split("/");
-        int pageIndex = Integer.parseInt(callbackData[2]);
-
-        log.trace("callbackData: " + Arrays.toString(callbackData));
-
-        pageIndex--;
-
-        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, operation);
-
-        assert pagesAndMarkup != null;
-        String[] pages = pagesAndMarkup.keySet().iterator().next();
-        InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
-
-        return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
-    }
-
-    @Override
     public EditMessageText processGetTaskInDetail(Update update, String operation) {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
 
-        if(callbackData.length < 5) {
-            log.error("callbackData length must be 5 or more, but callbackData length is "+callbackData.length);
+        if (callbackData.length < 5) {
+            log.error("callbackData length must be 5 or more, but callbackData length is " + callbackData.length);
             return null;
         }
 
@@ -754,7 +680,7 @@ public class TaskServiceImpl implements TaskService {
             pageIndex = Integer.parseInt(callbackData[2]);
             pageTaskIndex = Integer.parseInt(callbackData[3]);
         } catch (NumberFormatException e) {
-            log.error("CallbackQuery error: "+e.getMessage());
+            log.error("CallbackQuery error: " + e.getMessage());
             return null;
         }
         // get user from database to later get needed task using user's id
@@ -768,28 +694,28 @@ public class TaskServiceImpl implements TaskService {
         }
 
         // handling different buttons
-            switch (callbackData[4]) {
-                case "NEXT" -> pageTaskIndex++;
-                case "PREV" -> pageTaskIndex--;
-                case "CANCEL" -> {
-                    return returnToAllTasks(update, operation);
-                }
-                case "DELETE_CONFIRM" -> {
-                    return processTasksDeleteConfirm(update, operation);
-                }
-                case "DELETE" -> {
-                    return processTasksDelete(update, operation);
-                }
-                case "EDIT" -> {
-                    // doing checks, so that if 6th value is CANCEL, it doesn't go on never-ending loop
-                    if (callbackData.length == 5 ||
-                            (callbackData.length == 6 && !callbackData[5].equals("CANCEL"))) {
-                        return processTasksEdit(update, operation);
-                    }
+        switch (callbackData[4]) {
+            case "NEXT" -> pageTaskIndex++;
+            case "PREV" -> pageTaskIndex--;
+            case "CANCEL" -> {
+                return returnToAllTasks(update, operation);
+            }
+            case "DELETE_CONFIRM" -> {
+                return processTasksDeleteConfirm(update, operation);
+            }
+            case "DELETE" -> {
+                return processTasksDelete(update, operation);
+            }
+            case "EDIT" -> {
+                // doing checks, so that if 6th value is CANCEL, it doesn't go on never-ending loop
+                if (callbackData.length == 5 ||
+                        (callbackData.length == 6 && !callbackData[5].equals("CANCEL"))) {
+                    return processTasksEdit(update, operation);
                 }
             }
+        }
 
-        if(pageTaskIndex > TASK_PER_PAGE) {
+        if (pageTaskIndex > TASK_PER_PAGE) {
             pageTaskIndex = 0;
             pageIndex++;
         }
@@ -830,15 +756,15 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
 
         // setting callback data and adding buttons to keyboard
-        if(taskIndex > 0) {
+        if (taskIndex > 0) {
             prevButton.setCallbackData(String.format("%s/TASK/%d/%d/PREV", operation, pageIndex, pageTaskIndex));
             prevNextButtons.add(prevButton);
         }
-        if(taskIndex < tasks.size() - 1) {
+        if (taskIndex < tasks.size() - 1) {
             nextButton.setCallbackData(String.format("%s/TASK/%d/%d/NEXT", operation, pageIndex, pageTaskIndex));
             prevNextButtons.add(nextButton);
         }
-        if(task.getStatus().equals("Completed")) {
+        if (task.getStatus().equals("Completed")) {
             uncompleteButton.setCallbackData(String.format("%s/TASK/%d/%d/UNCOMPLETE", operation, pageIndex, pageTaskIndex));
             configurationButtons.add(uncompleteButton);
         } else {
@@ -863,6 +789,31 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public EditMessageText processGetAllTasksUpdate(Update update, String operation, String move) {
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+        String[] callbackData = callbackQuery.getData().split("/");
+        int pageIndex = Integer.parseInt(callbackData[2]);
+
+        if (move.equals("NEXT")) {
+            pageIndex++;
+        } else if (move.equals("PREV")) {
+            pageIndex--;
+        }
+
+        Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, operation);
+
+        if(pagesAndMarkup == null) {
+            log.error("pagesAndMarkup == null");
+            return null;
+        }
+
+        String[] pages = pagesAndMarkup.keySet().iterator().next();
+        InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
+
+        return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
+    }
+
+    @Override
     public SendMessage processGetAllTasks(Update update, String operation) {
         int pageIndex = 0;
 
@@ -880,6 +831,31 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
 
         return MessageUtils.sendMessageGenerator(update, pages[pageIndex], markup);
+    }
+
+    @Override
+    public SendMessage processGetAllTags(Update update) {
+        return MessageUtils.sendMessageGenerator(update,
+                "Your tags: ",
+                markupUtils.getTagsInlineMarkup(update, 0));
+    }
+
+    @Override
+    public EditMessageText processGetAllTagsUpdate(Update update, String move) {
+        String[] callbackData = update.getCallbackQuery().getData().split("/");
+
+        int pageIndex = Integer.parseInt(callbackData[2]);
+        if (move.equals("NEXT")) {
+            pageIndex++;
+        } else if (move.equals("PREV")) {
+            pageIndex--;
+        }
+
+        log.trace("pageIndex = "+pageIndex);
+
+        return MessageUtils.editMessageGenerator(update,
+                "Your tags: ",
+                markupUtils.getTagsInlineMarkup(update, pageIndex));
     }
 
     // CreateTask methods
@@ -913,7 +889,6 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex, String operation) {
-        // TODO maybe create a separate class to hold info, instead of Map
         User user = userUtils.getUserByTag(update);
         String[] pages;
 
@@ -941,7 +916,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         // creating list of pages full of tasks
-        pages = new String[(int) Math.ceil( tasks.size() / (float) TASK_PER_PAGE)];
+        pages = new String[(int) Math.ceil(tasks.size() / (float) TASK_PER_PAGE)];
         int pageNumber = -1;
         int taskNumber = 0;
         boolean noCompletedFlowYet = true;
@@ -954,13 +929,13 @@ public class TaskServiceImpl implements TaskService {
                 taskNumber = 0;
                 pages[pageNumber] = "";
 
-                if(pageNumber == 0 && hasUncompletedTasks) {
+                if (pageNumber == 0 && hasUncompletedTasks) {
                     pages[pageNumber] = pages[pageNumber].concat("❌ *Uncompleted:*\n\n");
                 }
             }
 
             //Mark completed/uncompleted
-            if(hasCompletedTasks && noCompletedFlowYet && tasks.get(i).getStatus().equals("Completed")) {
+            if (hasCompletedTasks && noCompletedFlowYet && tasks.get(i).getStatus().equals("Completed")) {
                 noCompletedFlowYet = false;
 
                 pages[pageNumber] = pages[pageNumber].concat("*✅ Completed:*\n\n");
@@ -970,14 +945,14 @@ public class TaskServiceImpl implements TaskService {
 
             // get task name for a button, and limit it only to 24 characters
             String taskName = task.getName();
-            if(taskName.length() > 64) {
-                taskName =  taskName.substring(0, 61).concat("...");
+            if (taskName.length() > 64) {
+                taskName = taskName.substring(0, 61).concat("...");
             }
 
             // set up button for current task
             InlineKeyboardButton currentButton;
 
-            if(task.getStatus().equals("Completed")) {
+            if (task.getStatus().equals("Completed")) {
                 currentButton = new InlineKeyboardButton("✅ ".concat(taskName));
             } else {
                 currentButton = new InlineKeyboardButton("❌ ".concat(taskName));
@@ -985,7 +960,7 @@ public class TaskServiceImpl implements TaskService {
             currentButton.setCallbackData(String.format("%s/TASK/%d/%d/TASK", operation, pageNumber, taskNumber));
 
             if (pageNumber == pageIndex) {
-                if (taskNumber <= TASK_PER_PAGE / 4 - 1 ) {
+                if (taskNumber <= TASK_PER_PAGE / 4 - 1) {
                     secondRow.add(currentButton);
                 } else if (taskNumber <= TASK_PER_PAGE / 4 * 2 - 1) {
                     thirdRow.add(currentButton);
@@ -1001,22 +976,18 @@ public class TaskServiceImpl implements TaskService {
         }
 
         // setting up row with prev next buttons
+        InlineKeyboardButton prevButton = new InlineKeyboardButton("<");
+        InlineKeyboardButton nextButton = new InlineKeyboardButton(">");
+
+        prevButton.setCallbackData(String.format("%s/PREV/%d/%d", operation, pageIndex, pageTaskIndex));
+        nextButton.setCallbackData(String.format("%s/NEXT/%d/%d", operation, pageIndex, pageTaskIndex));
+
         if (pageIndex > 0 && pageIndex < pageNumber) {
-            InlineKeyboardButton prevButton = new InlineKeyboardButton("<");
-            InlineKeyboardButton nextButton = new InlineKeyboardButton(">");
-
-            prevButton.setCallbackData(String.format("%s/PREV/%d/%d", operation, pageIndex, pageTaskIndex));
-            nextButton.setCallbackData(String.format("%s/NEXT/%d/%d", operation, pageIndex, pageTaskIndex));
-
             mainRow.add(prevButton);
             mainRow.add(nextButton);
         } else if (pageIndex == 0 && pageIndex < pageNumber) {
-            InlineKeyboardButton nextButton = new InlineKeyboardButton(">");
-            nextButton.setCallbackData(String.format("%s/NEXT/%d/%d", operation, pageIndex, pageTaskIndex));
             mainRow.add(nextButton);
         } else if (pageIndex > 0 && pageIndex == pageNumber) {
-            InlineKeyboardButton prevButton = new InlineKeyboardButton("<");
-            prevButton.setCallbackData(String.format("%s/PREV/%d/%d", operation, pageIndex, pageTaskIndex));
             mainRow.add(prevButton);
         }
 
@@ -1050,6 +1021,15 @@ public class TaskServiceImpl implements TaskService {
                 return taskRepository.findAllUncompletedTasks(user.getId());
             }
             default -> {
+                if (operation.startsWith("GET_BY_TAG")) {
+                    String tag = operation.split("\\|")[1];
+
+                    if (tag.equals("Untagged")) {
+                        return taskRepository.findAllByTag(user.getId(), null);
+                    }
+
+                    return taskRepository.findAllByTag(user.getId(), tag);
+                }
                 log.error("Unknown operation: " + operation);
                 return null;
             }

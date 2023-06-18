@@ -11,6 +11,7 @@ public enum ServiceCommand {
     UNCOMPLETED_TASKS("/uncompleted"),
     COMPLETED_TASKS("/completed"),
     TODAY_TASKS("/today"),
+    TAGS("/tags"),
     CREATE_TASK("/create"),
     DELETE_COMPLETED_TASKS("/clearCompleted"),
     DELETE_ALL_TASKS("/clearAll");
@@ -37,6 +38,7 @@ public enum ServiceCommand {
 
         return switch (value) {
             case "Tasks" -> TASKS;
+            case "Tags" -> TAGS;
             case "Create task" -> CREATE_TASK;
             case "Completed tasks" -> COMPLETED_TASKS;
             case "Uncompleted tasks" -> UNCOMPLETED_TASKS;

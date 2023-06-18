@@ -82,7 +82,7 @@ public class TaskUtils {
                 task.getTargetDate() == null ? "❌" : task.getTargetDate().toString(),
                 getPriorityDescription(task.getPriority()),
                 getDifficultyDescription(task.getDifficulty()),
-                task.getTag() == null ? "❌" : task.getTag(),
+                task.getTag() == null ? "Untagged" : task.getTag(),
                 task.getCreatedAt().toString(),
                 task.getStatus() == null ? "❌" :
                         task.getStatus().equals("Completed") ? "✅" : "❌",

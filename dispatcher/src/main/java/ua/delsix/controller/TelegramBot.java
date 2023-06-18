@@ -32,6 +32,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         KeyboardRow row2 = new KeyboardRow();
 
         row1.add("Tasks");
+        row1.add("Tags");
         row1.add("Create task");
         row2.add("Completed tasks");
         row2.add("Uncompleted tasks");

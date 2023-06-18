@@ -68,10 +68,13 @@ public class MainServiceImpl implements MainService {
 
         // get answer based on callbackQuery
         if (operation.startsWith("GET")) {
-            switch (callbackData[1]) {
-                case "NEXT" -> answer = taskService.processGetAllTasksNext(update, operation);
-                case "PREV" -> answer = taskService.processGetAllTasksPrev(update, operation);
-                case "TASK" -> answer = taskService.processGetTaskInDetail(update, operation);
+            if (operation.equals("GET_TAGS")) {
+                answer = taskService.processGetAllTagsUpdate(update, callbackData[1]);
+            } else {
+                switch (callbackData[1]) {
+                    case "NEXT", "PREV" -> answer = taskService.processGetAllTasksUpdate(update, operation, callbackData[1]);
+                    case "TASK" -> answer = taskService.processGetTaskInDetail(update, operation);
+                }
             }
         } else if (operation.startsWith("DELETE_ALL_COMPLETED")) {
             if (callbackData[1].equals("CONFIRM")) {
@@ -127,6 +130,7 @@ public class MainServiceImpl implements MainService {
             case TODAY_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_TODAY_TASKS");
             case COMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_COMPLETED_TASKS");
             case UNCOMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_UNCOMPLETED_TASKS");
+            case TAGS -> answerMessage = taskService.processGetAllTags(update);
             case DELETE_COMPLETED_TASKS -> answerMessage = taskService.processDeleteAllCompletedTasksConfirmation(update);
             case DELETE_ALL_TASKS -> answerMessage = taskService.processDeleteAllTasksConfirmation(update);
             default -> {

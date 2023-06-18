@@ -13,14 +13,18 @@ import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
     Optional<Task> findTopByUserIdOrderByIdDesc(Long userId);
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId ORDER BY t.status DESC, t.targetDate, t.priority DESC, t.id ASC")
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId ORDER BY t.status DESC, t.targetDate, t.priority ASC, t.id ASC")
     List<Task> findAll(@Param("userId") Long userId);
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.targetDate = :today ORDER BY t.status DESC, t.priority DESC, t.id ASC")
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND (t.tag = :tag OR (:tag IS NULL AND t.tag IS NULL)) ORDER BY t.status DESC, t.targetDate, t.priority ASC, t.id ASC")
+    List<Task> findAllByTag(@Param("userId") Long userId, String tag);
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId ORDER BY t.tag ASC")
+    List<Task> findAllSortedOnlyByTags(@Param("userId") Long userId);
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.targetDate = :today ORDER BY t.status DESC, t.priority ASC, t.id ASC")
     List<Task> findAllTasksDatedForToday(@Param("userId") Long userId,
                                          @Param("today") LocalDate today);
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.status = 'Completed' ORDER BY t.targetDate ASC, t.priority DESC, t.id ASC")
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.status = 'Completed' ORDER BY t.targetDate ASC, t.priority ASC, t.id ASC")
     List<Task> findAllCompletedTasks(@Param("userId") Long userId);
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.status = 'Uncompleted' ORDER BY t.targetDate ASC, t.priority DESC, t.id ASC")
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.status = 'Uncompleted' ORDER BY t.targetDate ASC, t.priority ASC, t.id ASC")
     List<Task> findAllUncompletedTasks(@Param("userId") Long userId);
     @Modifying
     @Transactional

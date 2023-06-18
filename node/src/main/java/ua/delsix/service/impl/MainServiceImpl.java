@@ -114,8 +114,9 @@ public class MainServiceImpl implements MainService {
                         _/uncompleted _ - see all of your uncompleted tasks
                         _/completed _ - see all of your completed tasks
                         _/today _ - see all of your tasks dated for today
-                        _/clearCompleted_ - delete all your completed tasks (W.I.P)
-                        _/clearAll_ - delete all your tasks (W.I.P)""";
+                        _/clearCompleted_ - delete all your completed tasks
+                        _/clearAll_ - delete all your tasks
+                        _/tags_ - get all your tags and access a set of tasks by a specific tag""";
                 answerMessage.setText(answerText);
             }
             case START -> {

@@ -19,7 +19,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findAllByTag(@Param("userId") Long userId, String tag);
     @Query("SELECT t FROM Task t WHERE t.userId = :userId ORDER BY t.tag ASC")
     List<Task> findAllSortedOnlyByTags(@Param("userId") Long userId);
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.targetDate = :today ORDER BY t.status DESC, t.priority ASC, t.id ASC")
+    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.targetDate = :today ORDER BY t.status DESC, t.priority DESC, t.id ASC")
     List<Task> findAllTasksDatedForToday(@Param("userId") Long userId,
                                          @Param("today") LocalDate today);
     @Query("SELECT t FROM Task t WHERE t.userId = :userId AND t.status = 'Completed' ORDER BY t.targetDate ASC, t.priority ASC, t.id ASC")

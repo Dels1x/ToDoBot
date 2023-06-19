@@ -1,4 +1,4 @@
-package ua.delsix.service.impl;
+package ua.delsix.processor.impl;
 
 import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
@@ -15,8 +15,8 @@ import ua.delsix.entity.User;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.repository.UserRepository;
 import ua.delsix.service.ProducerService;
-import ua.delsix.service.TaskService;
-import ua.delsix.service.enums.ServiceCommand;
+import ua.delsix.processor.TaskProcessor;
+import ua.delsix.enums.ServiceCommand;
 import ua.delsix.utils.MarkupUtils;
 import ua.delsix.utils.MessageUtils;
 import ua.delsix.utils.TaskUtils;
@@ -29,7 +29,7 @@ import java.util.*;
 
 @Service
 @Log4j
-public class TaskServiceImpl implements TaskService {
+public class TaskProcessorImpl implements TaskProcessor {
     private final MarkupUtils markupUtils;
     private final UserUtils userUtils;
     private final TaskUtils taskUtils;
@@ -38,7 +38,7 @@ public class TaskServiceImpl implements TaskService {
     private final ProducerService producerService;
     private static final int TASK_PER_PAGE = 4;
 
-    public TaskServiceImpl(MarkupUtils markupUtils, UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, ProducerService producerService) {
+    public TaskProcessorImpl(MarkupUtils markupUtils, UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, ProducerService producerService) {
         this.markupUtils = markupUtils;
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
@@ -320,7 +320,12 @@ public class TaskServiceImpl implements TaskService {
         if (!userMessage.hasText()) {
             return "Please, send a text for the tag of your task";
         }
-        task.setTag(userMessage.getText());
+
+        if(userMessage.getText().equals("Untagged")) {
+            task.setTag(null);
+        } else {
+            task.setTag(userMessage.getText());
+        }
 
         return null;
     }
@@ -381,7 +386,8 @@ public class TaskServiceImpl implements TaskService {
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(
                                 update,
-                                text));
+                                text),
+                        update);
             }
             case "DESC" -> {
                 task.setState("EDITING_DESCRIPTION");
@@ -390,7 +396,8 @@ public class TaskServiceImpl implements TaskService {
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(
                                 update,
-                                text));
+                                text),
+                        update);
             }
             case "DATE" -> {
                 task.setState("EDITING_DATE");
@@ -400,7 +407,8 @@ public class TaskServiceImpl implements TaskService {
                         MessageUtils.sendMessageGenerator(
                                 update,
                                 text,
-                                markupUtils.getDateMarkupWithoutSkipCancelFinish()));
+                                markupUtils.getDateMarkupWithoutSkipCancelFinish()),
+                        update);
             }
             case "PRIOR" -> {
                 task.setState("EDITING_PRIORITY");
@@ -417,7 +425,8 @@ public class TaskServiceImpl implements TaskService {
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(
                                 update,
-                                text));
+                                text),
+                        update);
             }
             case "DIFF" -> {
                 task.setState("EDITING_DIFFICULTY");
@@ -437,7 +446,8 @@ public class TaskServiceImpl implements TaskService {
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(
                                 update,
-                                text));
+                                text),
+                        update);
             }
             case "TAG" -> {
                 task.setState("EDITING_TAG");
@@ -447,7 +457,8 @@ public class TaskServiceImpl implements TaskService {
                         MessageUtils.sendMessageGenerator(
                                 update,
                                 text,
-                                markupUtils.getTagsReplyMarkupWithoutCancelSkipFinish(update)));
+                                markupUtils.getTagsReplyMarkupWithoutCancelSkipFinish(update)),
+                        update);
             }
             case "CANCEL" -> {
                 task.setState("COMPLETED");

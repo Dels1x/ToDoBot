@@ -1,11 +1,11 @@
-package ua.delsix.service;
+package ua.delsix.processor;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.entity.Task;
 
-public interface TaskService {
+public interface TaskProcessor {
     SendMessage processCreateTask(Update update);
     SendMessage processCreatingTask(Update update);
     SendMessage editTask(Update update, Task task);

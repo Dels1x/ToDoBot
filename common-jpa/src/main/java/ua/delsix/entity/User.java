@@ -22,7 +22,7 @@ public class User {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "tag", nullable = false)
+    @Column(name = "tag")
     private String tag;
 
     @Column(name = "telegram_id", nullable = false)
@@ -36,4 +36,7 @@ public class User {
 
     @Column(name = "task_completed", nullable = false)
     private Integer taskCompleted;
+
+    @Column(name = "language", nullable = false)
+    private String language;
 }

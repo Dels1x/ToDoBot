@@ -1,0 +1,113 @@
+help:
+  en: |
+    Available commands:
+
+    _/create_ - Create a new task. 
+    _/tasks_ - View all your tasks. (You can also edit, complete and delete tasks using this command)
+    _/uncompleted_ - View your uncompleted tasks.
+    _/completed_ - View your completed tasks.
+    _/today_ - View your tasks due today.
+    _/clearCompleted_ - Delete all your completed tasks.
+    _/clearAll_ - Delete all your tasks.
+    _/tags_ - Get all your tags and access tasks by tag.
+  ru: |
+    Доступные команды:
+
+    _/create_ - Создать новую задачу.
+    _/tasks_ - Просмотреть все ваши задачи. (Вы также можете редактировать, завершать и удалять задания с помощью этой команды)
+    _/uncompleted_ - Просмотреть ваши незавершенные задачи.
+    _/completed_ - Просмотреть ваши выполненные задачи.
+    _/today_ - Просмотреть ваши задачи на сегодня.
+    _/clearCompleted_ - Удалить все ваши выполненные задачи.
+    _/clearAll_ - Удалить все ваши задачи.
+    _/tags_ - Получить все ваши тэги и просмотреть ваши задачи по тэгу.
+  ua: |
+    Доступні команди:
+
+    /create - Створити нове завдання.
+    /tasks - Переглянути всі ваші завдання. (За допомогою цієї команди ви також можете редагувати, завершувати та видаляти завдання)
+    /uncompleted - Переглянути ваші незавершені завдання.
+    /completed - Переглянути ваші завершені завдання.
+    /today - Переглянути ваші завдання на сьогодні.
+    /clearCompleted - Видалити всі ваші завершені завдання.
+    /clearAll - Видалити всі ваші завдання.
+    /tags - Отримати всі ваші тегі та доступ до завдань за тегом.
+start:
+  en: |
+    Welcome to the Task Manager Bot!
+
+    This bot helps you manage your tasks and stay organized. Here are the available commands:
+      
+    _/help_ - See all available commands and usage instructions.
+    _/create_ - Create a new task.
+    _/tasks_ - View all your tasks.
+    _/uncompleted_ - View your uncompleted tasks.
+    _/completed_ - View your completed tasks.
+    _/today_ - View your tasks due today.
+    _/clearCompleted_ - Delete all your completed tasks.
+    _/clearAll_ - Delete all your tasks.
+    _/tags_ - Get all your tags and access tasks by tag.
+    
+    Feel free to explore the commands and manage your tasks efficiently!
+  ru: |
+    Добро пожаловать в Task Manager Bot!
+
+    Этот бот поможет вам управлять своими задачами и оставаться организованным. Вот доступные команды:
+
+    _/help_ - Посмотреть все доступные команды и инструкции по их использованию.
+    _/create_ - Создать новую задачу.
+    _/tasks_ - Просмотреть все ваши задачи. (Вы также можете редактировать, завершать и удалять задания с помощью этой команды)
+    _/uncompleted_ - Просмотреть ваши незавершенные задачи.
+    _/completed_ - Просмотреть ваши выполненные задачи.
+    _/today_ - Просмотреть ваши задачи на сегодня.
+    _/clearCompleted_ - Удалить все ваши выполненные задачи.
+    _/clearAll_ - Удалить все ваши задачи.
+    _/tags_ - Получить все ваши тэги и просмотреть ваши задачи по тэгу.
+
+    Приятного времени эффективно управлять вашими задачами!
+  ua: |
+    Ласкаво просимо до Task Manager Bot!
+
+    Цей бот допоможе вам керувати своїми завданнями та бути організованим. Ось доступні команди:
+
+    /help - Переглянути всі доступні команди та інструкції щодо використання.
+    /create - Створити нове завдання.
+    /tasks - Переглянути всі ваші завдання. (За допомогою цієї команди ви також можете редагувати, завершувати та видаляти завдання)
+    /uncompleted - Переглянути ваші незавершені завдання.
+    /completed - Переглянути ваші завершені завдання.
+    /today - Переглянути ваші завдання на сьогодні.
+    /clearCompleted - Видалити всі ваші завершені завдання.
+    /clearAll - Видалити всі ваші завдання.
+    /tags - Отримати всі ваші тегі та доступ до завдань за тегом.
+
+    Приємного часу ефективно керувати вашими завданнями!
+unknown-command:
+  en: Unknown command. Use _/help_ to see available commands.
+  ru: Неизвестная команда. Воспользуйтесь командой _/help_ чтобы увидеть доступные команды.
+  ua: Невідома команда. Скористайтеся командою _/help_ щоб побачити доступні команди.
+keyboard:
+  default:
+    tasks:
+      en: Tasks
+      ru: Задачи
+      ua: Завдання
+    tags:
+      en: Tags
+      ru: Тэги
+      ua: Теги
+    create:
+      en: Create task
+      ru: Создать задачу
+      ua: Создати завдання
+    completed:
+      en: Completed tasks
+      ru: Выполненные задачи
+      ua: Виконані завдання
+    uncompleted:
+      en: Uncompleted tasks
+      ru: Незавершённые задачи
+      ua: Незавершені завдання
+    today:
+      en: Tasks due today
+      ru: Задачи на сегодня
+      ua: Завдання на сьогодні

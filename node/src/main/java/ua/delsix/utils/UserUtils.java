@@ -25,9 +25,8 @@ public class UserUtils {
             tgUser = update.getCallbackQuery().getFrom();
         }
 
-        String userTag = tgUser.getUserName();
         Long userId = tgUser.getId();
-        Optional<User> user = userRepository.findByTag(userTag);
+        Optional<User> user = userRepository.findByTelegramId(userId);
 
         if(user.isPresent()) {
             return user.get();
@@ -37,8 +36,9 @@ public class UserUtils {
                     .taskCount(0)
                     .taskCompleted(0)
                     .createdAt(LocalDate.now())
-                    .tag(userTag)
+                    .tag(tgUser.getUserName())
                     .telegramId(userId)
+                    .language(tgUser.getLanguageCode())
                     .build();
             return userRepository.save(newUser);
         }

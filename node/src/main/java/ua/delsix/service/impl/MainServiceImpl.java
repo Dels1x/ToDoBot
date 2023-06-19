@@ -8,30 +8,34 @@ import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
+import ua.delsix.language.LanguageManager;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.service.MainService;
 import ua.delsix.service.ProducerService;
-import ua.delsix.service.TaskService;
-import ua.delsix.service.enums.ServiceCommand;
+import ua.delsix.processor.TaskProcessor;
+import ua.delsix.enums.ServiceCommand;
 import ua.delsix.utils.MessageUtils;
 import ua.delsix.utils.UserUtils;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
 @Log4j
 public class MainServiceImpl implements MainService {
+    private final LanguageManager languageManager;
 
     private final ProducerService producerService;
-    private final TaskService taskService;
+    private final TaskProcessor taskProcessor;
     private final TaskRepository taskRepository;
     private final UserUtils userUtils;
 
-    public MainServiceImpl(ProducerService producerService, TaskService taskService, TaskRepository taskRepository, UserUtils userUtils) {
+    public MainServiceImpl(LanguageManager languageManager, ProducerService producerService, TaskProcessor taskProcessor, TaskRepository taskRepository, UserUtils userUtils) {
+        this.languageManager = languageManager;
         this.producerService = producerService;
-        this.taskService = taskService;
+        this.taskProcessor = taskProcessor;
         this.taskRepository = taskRepository;
         this.userUtils = userUtils;
     }
@@ -48,7 +52,7 @@ public class MainServiceImpl implements MainService {
             log.error("Update has neither message nor callback query");
         }
 
-        producerService.produceAnswer(answerMessage);
+        producerService.produceAnswer(answerMessage, update);
     }
 
     private SendMessage processMessage(Update update) {
@@ -69,20 +73,20 @@ public class MainServiceImpl implements MainService {
         // get answer based on callbackQuery
         if (operation.startsWith("GET")) {
             if (operation.equals("GET_TAGS")) {
-                answer = taskService.processGetAllTagsUpdate(update, callbackData[1]);
+                answer = taskProcessor.processGetAllTagsUpdate(update, callbackData[1]);
             } else {
                 switch (callbackData[1]) {
-                    case "NEXT", "PREV" -> answer = taskService.processGetAllTasksUpdate(update, operation, callbackData[1]);
-                    case "TASK" -> answer = taskService.processGetTaskInDetail(update, operation);
+                    case "NEXT", "PREV" -> answer = taskProcessor.processGetAllTasksUpdate(update, operation, callbackData[1]);
+                    case "TASK" -> answer = taskProcessor.processGetTaskInDetail(update, operation);
                 }
             }
         } else if (operation.startsWith("DELETE_ALL_COMPLETED")) {
             if (callbackData[1].equals("CONFIRM")) {
-                answer = taskService.processDeleteAllCompletedTasks(update);
+                answer = taskProcessor.processDeleteAllCompletedTasks(update);
             }
         } else if (operation.startsWith("DELETE_ALL")) {
             if (callbackData[1].equals("CONFIRM")) {
-                answer = taskService.processDeleteAllTasks(update);
+                answer = taskProcessor.processDeleteAllTasks(update);
             }
         }
 
@@ -98,6 +102,9 @@ public class MainServiceImpl implements MainService {
         String answerText = "";
         SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, "");
         User user = userUtils.getUserByTag(update);
+        String userLanguage = user.getLanguage();
+
+        log.trace(update.getMessage().getFrom().toString());
 
         if (userCommand == null) {
             userCommand = ServiceCommand.NON_COMMAND;
@@ -106,46 +113,37 @@ public class MainServiceImpl implements MainService {
         log.debug("User command: " + userCommand);
         switch (userCommand) {
             case HELP -> {
-                answerText = """
-                        Available commands:
+                answerText = languageManager.getMessage(
+                        String.format("help.%s", userLanguage),
+                        new Locale.Builder().setLanguageTag(userLanguage).build());
 
-                        _/tasks_ - see all of your tasks (and you can edit/remove/complete them using this command)
-                        _/create_ - Create task
-                        _/uncompleted _ - see all of your uncompleted tasks
-                        _/completed _ - see all of your completed tasks
-                        _/today _ - see all of your tasks dated for today
-                        _/clearCompleted_ - delete all your completed tasks
-                        _/clearAll_ - delete all your tasks
-                        _/tags_ - get all your tags and access a set of tasks by a specific tag""";
                 answerMessage.setText(answerText);
             }
             case START -> {
-                answerText = """
-                        Welcome to the delsix's Task Manager Bot!
-                                                
-                        Type "help" to see all available commands.""";
+                answerText = languageManager.getMessage(
+                        String.format("start.%s", userLanguage),
+                        new Locale.Builder().setLanguageTag(userLanguage).build());
+
                 answerMessage.setText(answerText);
             }
-            case CREATE_TASK -> answerMessage = taskService.processCreateTask(update);
-            case TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_ALL_TASKS");
-            case TODAY_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_TODAY_TASKS");
-            case COMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_COMPLETED_TASKS");
-            case UNCOMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_UNCOMPLETED_TASKS");
-            case TAGS -> answerMessage = taskService.processGetAllTags(update);
-            case DELETE_COMPLETED_TASKS -> answerMessage = taskService.processDeleteAllCompletedTasksConfirmation(update);
-            case DELETE_ALL_TASKS -> answerMessage = taskService.processDeleteAllTasksConfirmation(update);
+            case CREATE_TASK -> answerMessage = taskProcessor.processCreateTask(update);
+            case TASKS -> answerMessage = taskProcessor.processGetAllTasks(update, "GET_ALL_TASKS");
+            case TODAY_TASKS -> answerMessage = taskProcessor.processGetAllTasks(update, "GET_TODAY_TASKS");
+            case COMPLETED_TASKS -> answerMessage = taskProcessor.processGetAllTasks(update, "GET_COMPLETED_TASKS");
+            case UNCOMPLETED_TASKS -> answerMessage = taskProcessor.processGetAllTasks(update, "GET_UNCOMPLETED_TASKS");
+            case TAGS -> answerMessage = taskProcessor.processGetAllTags(update);
+            case DELETE_COMPLETED_TASKS -> answerMessage = taskProcessor.processDeleteAllCompletedTasksConfirmation(update);
+            case DELETE_ALL_TASKS -> answerMessage = taskProcessor.processDeleteAllTasksConfirmation(update);
             default -> {
-                //TODO handle editing
                 answerMessage.setText(answerText);
                 // get task to determine what user tries to achieve by user's last task's state
                 Optional<Task> lastTask = taskRepository.findTopByUserIdOrderByIdDesc(user.getId());
                 if(lastTask.isPresent()) {
                     String taskState = lastTask.get().getState();
-                    log.trace("User's last task state: "+taskState);
 
                     // process further creation/editing of a task in TaskService
                     if(taskState.startsWith("CREAT")) {
-                        answerMessage = taskService.processCreatingTask(update);
+                        answerMessage = taskProcessor.processCreatingTask(update);
                     } else {
                         List<Task> tasks = taskRepository.findAll(user.getId());
 
@@ -154,15 +152,20 @@ public class MainServiceImpl implements MainService {
                                 .findFirst();
 
                         if(editTaskOptional.isPresent()) {
-                            answerMessage = taskService.editTask(update, editTaskOptional.get());
+                            answerMessage = taskProcessor.editTask(update, editTaskOptional.get());
                         } else {
-                            answerText = "Unknown command";
+                            answerText = languageManager.getMessage(String.format(
+                                    "unknown-command.%s", userLanguage),
+                                    new Locale.Builder().setLanguageTag(userLanguage).build());
+
                             answerMessage.setText(answerText);
                         }
                     }
                 } else {
-                    log.trace("User doesn't have any tasks");
-                    answerText = "Unknown command";
+                    answerText = languageManager.getMessage(
+                            String.format("unknown-command.%s", userLanguage),
+                            new Locale.Builder().setLanguageTag(userLanguage).build());
+                    
                     answerMessage.setText(answerText);
                 }
             }

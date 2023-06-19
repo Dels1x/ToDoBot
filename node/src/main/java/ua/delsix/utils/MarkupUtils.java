@@ -9,6 +9,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
+import ua.delsix.language.LanguageManager;
 import ua.delsix.repository.TaskRepository;
 
 import java.time.LocalDate;
@@ -19,10 +20,12 @@ import java.util.*;
 public class MarkupUtils {
     private final UserUtils userUtils;
     private final TaskRepository taskRepository;
+    private final LanguageManager languageManager;
 
-    public MarkupUtils(UserUtils userUtils, TaskRepository taskRepository) {
+    public MarkupUtils(UserUtils userUtils, TaskRepository taskRepository, LanguageManager languageManager) {
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
+        this.languageManager = languageManager;
     }
 
     public ReplyKeyboardMarkup getCancelSkipFinishMarkup() {
@@ -260,5 +263,35 @@ public class MarkupUtils {
         keyboard.add(secondRow);
 
         return new InlineKeyboardMarkup(keyboard);
+    }
+
+    public ReplyKeyboardMarkup getDefaultMarkup(Update update) {
+        String userLanguage = userUtils.getUserByTag(update).getLanguage();
+
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        KeyboardRow row1 = new KeyboardRow();
+        KeyboardRow row2 = new KeyboardRow();
+
+        row1.add(languageManager.getMessage(
+                String.format("keyboard.default.tasks.%s", userLanguage),
+                new Locale.Builder().setLanguageTag(userLanguage).build()));
+        row1.add(languageManager.getMessage(
+                String.format("keyboard.default.tags.%s", userLanguage),
+                new Locale.Builder().setLanguageTag(userLanguage).build()));
+        row1.add(languageManager.getMessage(
+                String.format("keyboard.default.create.%s", userLanguage),
+                new Locale.Builder().setLanguageTag(userLanguage).build()));
+        row2.add(languageManager.getMessage(
+                String.format("keyboard.default.uncompleted.%s", userLanguage),
+                new Locale.Builder().setLanguageTag(userLanguage).build()));
+        row2.add(languageManager.getMessage(
+                String.format("keyboard.default.completed.%s", userLanguage),
+                new Locale.Builder().setLanguageTag(userLanguage).build()));
+        row2.add(languageManager.getMessage(
+                String.format("keyboard.default.today.%s", userLanguage),
+                new Locale.Builder().setLanguageTag(userLanguage).build()));
+        keyboard.add(row1);
+        keyboard.add(row2);
+        return new ReplyKeyboardMarkup(keyboard);
     }
 }

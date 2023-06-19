@@ -1,4 +1,4 @@
-package ua.delsix.service.enums;
+package ua.delsix.enums;
 
 public enum ServiceCommand {
     NON_COMMAND(""),
@@ -37,12 +37,12 @@ public enum ServiceCommand {
         }
 
         return switch (value) {
-            case "Tasks" -> TASKS;
-            case "Tags" -> TAGS;
-            case "Create task" -> CREATE_TASK;
-            case "Completed tasks" -> COMPLETED_TASKS;
-            case "Uncompleted tasks" -> UNCOMPLETED_TASKS;
-            case "Today tasks" -> TODAY_TASKS;
+            case "Tasks", "Задачи", "Завдання" -> TASKS;
+            case "Tags", "Тэги", "Теги" -> TAGS;
+            case "Create task", "Создать задачу","Создати завдання" -> CREATE_TASK;
+            case "Completed tasks", "Выполненные задачи", "Виконані завдання" -> COMPLETED_TASKS;
+            case "Uncompleted tasks", "Завершённые задачи", "Незавершені завдання" -> UNCOMPLETED_TASKS;
+            case "Today tasks", "Задачи на сегодня", "Завдання на сьогодні" -> TODAY_TASKS;
             default -> NON_COMMAND;
         };
     }

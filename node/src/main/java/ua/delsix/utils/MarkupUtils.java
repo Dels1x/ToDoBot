@@ -294,4 +294,47 @@ public class MarkupUtils {
         keyboard.add(row2);
         return new ReplyKeyboardMarkup(keyboard);
     }
+
+    public ReplyKeyboardMarkup getPriorityMarkup() {
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        KeyboardRow row1 = new KeyboardRow();
+        KeyboardRow row2 = new KeyboardRow();
+        KeyboardRow row3 = new KeyboardRow();
+
+        row1.add("Cancel");
+        row1.add("Skip");
+        row1.add("Finish");
+        row2.add("Not important");
+        row2.add("Low");
+        row2.add("Medium");
+        row3.add("High");
+        row3.add("Very high");
+        row3.add("Extremely high");
+
+        keyboard.add(row1);
+        keyboard.add(row2);
+        keyboard.add(row3);
+
+        return new ReplyKeyboardMarkup(keyboard);
+    }
+
+    public ReplyKeyboardMarkup getPriorityMarkupWithoutSkipCancelFinish() {
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        KeyboardRow row1 = new KeyboardRow();
+        KeyboardRow row2 = new KeyboardRow();
+        KeyboardRow row3 = new KeyboardRow();
+
+        row2.add("Not important");
+        row2.add("Low");
+        row2.add("Medium");
+        row3.add("High");
+        row3.add("Very high");
+        row3.add("Extremely high");
+
+        keyboard.add(row1);
+        keyboard.add(row2);
+        keyboard.add(row3);
+
+        return new ReplyKeyboardMarkup(keyboard);
+    }
 }

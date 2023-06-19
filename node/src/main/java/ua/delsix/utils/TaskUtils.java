@@ -40,7 +40,7 @@ public class TaskUtils {
             case 3 -> "Medium";
             case 4 -> "High";
             case 5 -> "Very high";
-            case 6 -> "Urgent";
+            case 6 -> "Extremely high";
             default -> "❌";
         };
     }
@@ -104,11 +104,11 @@ public class TaskUtils {
                     You can also set a *priority* for your task - a number in range of 1-6:
                    
                     1 = Not important
-                    2 = Low priority
-                    3 = Medium priority
-                    4 = High priority
-                    5 = Very high priority
-                    6 = Urgent priority
+                    2 = Low
+                    3 = Medium
+                    4 = High
+                    5 = Very high
+                    6 = Extremely high
                     """;
 
             case "CREATING_PRIORITY" -> """

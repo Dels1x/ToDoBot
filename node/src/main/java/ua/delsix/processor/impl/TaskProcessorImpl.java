@@ -112,6 +112,7 @@ public class TaskProcessorImpl implements TaskProcessor {
 
             switch (taskState) {
                 case "CREATING_DATE" -> answerMessage.setReplyMarkup(markupUtils.getDateMarkup());
+                case "CREATING_PRIORITY" -> answerMessage.setReplyMarkup(markupUtils.getPriorityMarkup());
                 case "CREATING_TAG" -> answerMessage.setReplyMarkup(markupUtils.getTagsReplyMarkup(update));
                 case "COMPLETED" -> answerMessage.setReplyMarkup(null);
             }
@@ -160,6 +161,7 @@ public class TaskProcessorImpl implements TaskProcessor {
                 if (answerText != null) {
                     answerMessage.setText(answerText);
                 } else {
+                    answerMessage.setReplyMarkup(markupUtils.getPriorityMarkup());
                     task.setState("CREATING_PRIORITY");
                 }
             }
@@ -237,13 +239,15 @@ public class TaskProcessorImpl implements TaskProcessor {
             return errorMessage;
         }
         LocalDate date;
+        String text = userMessage.getText();
+
         // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
         try {
             //TODO add ability to choose date by typing "in X days"
-            if (userMessage.getText().toLowerCase().contains("today")) {
+            if (text.equalsIgnoreCase("today")) {
                 // Get the current date
                 date = LocalDate.now();
-            } else if (userMessage.getText().toLowerCase().contains("tomorrow")) {
+            } else if (text.equalsIgnoreCase("tomorrow")) {
                 // Get the date of tomorrow
                 date = LocalDate.now().plusDays(1);
             } else {
@@ -265,22 +269,38 @@ public class TaskProcessorImpl implements TaskProcessor {
             return "Please, send a number for the priority of your task";
         }
 
-        int number;
+        String text = userMessage.getText();
 
-        // Verifying that user's response is a number
-        try {
-            number = Integer.parseInt(userMessage.getText());
-        } catch (NumberFormatException e) {
-            return "Please, write a number from 1 to 6 for the priority.";
-        }
+        if (text.equalsIgnoreCase("Not important")) {
+            task.setPriority(1);
+        } else if (text.equalsIgnoreCase("Low")) {
+            task.setPriority(2);
+        } else if (text.equalsIgnoreCase("Medium")) {
+            task.setPriority(3);
+        } else if (text.equalsIgnoreCase("High")) {
+            task.setPriority(4);
+        } else if (text.equalsIgnoreCase("Very high")) {
+            task.setPriority(5);
+        } else if (text.equalsIgnoreCase("Extremely high")) {
+            task.setPriority(6);
+        } else {
+            int number;
 
-        // Check if the number is within the allowed range of 1 to 6
-        if (number >= 1 && number <= 6) {
-            // Set the task priority to the user-provided number
-            task.setPriority(number);
-        } else if (number != 0) {
-            // Inform the user that the priority must be within the allowed range of 1 to 6
-            return "Allowed range for priority is 1-6.";
+            // Verifying that user's response is a number
+            try {
+                number = Integer.parseInt(text);
+            } catch (NumberFormatException e) {
+                return "Please, write a number from 1 to 6 for the priority.";
+            }
+
+            // Check if the number is within the allowed range of 1 to 6
+            if (number >= 1 && number <= 6) {
+                // Set the task priority to the user-provided number
+                task.setPriority(number);
+            } else if (number != 0) {
+                // Inform the user that the priority must be within the allowed range of 1 to 6
+                return "Allowed range for priority is 1-6.";
+            }
         }
 
         taskRepository.save(task);
@@ -425,7 +445,8 @@ public class TaskProcessorImpl implements TaskProcessor {
                 producerService.produceAnswer(
                         MessageUtils.sendMessageGenerator(
                                 update,
-                                text),
+                                text,
+                                markupUtils.getPriorityMarkupWithoutSkipCancelFinish()),
                         update);
             }
             case "DIFF" -> {

@@ -31,6 +31,12 @@ public class UserUtils {
         if(user.isPresent()) {
             return user.get();
         } else {
+            String languageCode = tgUser.getLanguageCode();
+
+            if(!languageCode.equals("en") && !languageCode.equals("ua") && !languageCode.equals("ru")) {
+                languageCode = "en";
+            }
+
             User newUser = User.builder()
                     .name(tgUser.getFirstName())
                     .taskCount(0)
@@ -38,7 +44,7 @@ public class UserUtils {
                     .createdAt(LocalDate.now())
                     .tag(tgUser.getUserName())
                     .telegramId(userId)
-                    .language(tgUser.getLanguageCode())
+                    .language(languageCode)
                     .build();
             return userRepository.save(newUser);
         }

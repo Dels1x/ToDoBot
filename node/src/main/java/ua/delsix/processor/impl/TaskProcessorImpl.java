@@ -128,6 +128,7 @@ public class TaskProcessorImpl implements TaskProcessor {
             switch (taskState) {
                 case "CREATING_DATE" -> answerMessage.setReplyMarkup(markupUtils.getDateMarkup(update));
                 case "CREATING_PRIORITY" -> answerMessage.setReplyMarkup(markupUtils.getPriorityMarkup(update));
+                case "CREATING_DIFFICULTY" -> answerMessage.setReplyMarkup(markupUtils.getDifficultyMarkup(update));
                 case "CREATING_TAG" -> answerMessage.setReplyMarkup(markupUtils.getTagsReplyMarkup(update));
                 case "COMPLETED" -> answerMessage.setReplyMarkup(null);
             }
@@ -185,6 +186,7 @@ public class TaskProcessorImpl implements TaskProcessor {
                 if (answerText != null) {
                     answerMessage.setText(answerText);
                 } else {
+                    answerMessage.setReplyMarkup(markupUtils.getDifficultyMarkup(update));
                     task.setState("CREATING_DIFFICULTY");
                 }
             }
@@ -269,13 +271,13 @@ public class TaskProcessorImpl implements TaskProcessor {
         // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
         try {
             //TODO add ability to choose date by typing "in X days"
-            switch (userMessage.getText().toLowerCase()) {
-                case "today", "сегодня", "сьогодні" -> date = LocalDate.now();
-                case "tomorrow", "завтра" -> date = LocalDate.now().plusDays(1);
-                default -> {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                    date = LocalDate.parse(userMessage.getText(), formatter);
-                }
+            if (languageManager.isInSection(userMessage.getText(), "keyboard.date.today", language)) {
+                date = LocalDate.now();
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.date.tomorrow", language)) {
+                date = LocalDate.now().plusDays(1);
+            } else {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                date = LocalDate.parse(userMessage.getText(), formatter);
             }
         } catch (DateTimeParseException e) {
             return errorMessage;
@@ -298,35 +300,39 @@ public class TaskProcessorImpl implements TaskProcessor {
 
         String text = userMessage.getText().toLowerCase();
 
-        switch (text) {
-            case "not important", "не важно", "не важливо" -> task.setPriority(1);
-            case "low", "низкий", "низький" -> task.setPriority(2);
-            case "medium", "средний", "середній" -> task.setPriority(3);
-            case "high", "высокий", "високий" -> task.setPriority(4);
-            case "very high", "очень высокий", "дуже високий" -> task.setPriority(5);
-            case "extremely high", "чрезвычайно высокий", "надзвичайно високий" -> task.setPriority(6);
-            default -> {
-                int number;
+        if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.not-important", language)) {
+            task.setPriority(1);
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.low", language)) {
+            task.setPriority(2);
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.medium", language)) {
+            task.setPriority(3);
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.high", language)) {
+            task.setPriority(4);
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.very-high", language)) {
+            task.setPriority(5);
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.extremely-high", language)) {
+            task.setPriority(6);
+        } else {
+            int number;
 
-                // Verifying that user's response is a number
-                try {
-                    number = Integer.parseInt(text);
-                } catch (NumberFormatException e) {
-                    return languageManager.getMessage(
-                            String.format("error.set.priority.no-text.%s", language),
-                            language);
-                }
+            // Verifying that user's response is a number
+            try {
+                number = Integer.parseInt(text);
+            } catch (NumberFormatException e) {
+                return languageManager.getMessage(
+                        String.format("error.set.priority.no-text.%s", language),
+                        language);
+            }
 
-                // Check if the number is within the allowed range of 1 to 6
-                if (number >= 1 && number <= 6) {
-                    // Set the task priority to the user-provided number
-                    task.setPriority(number);
-                } else if (number != 0) {
-                    // Inform the user that the priority must be within the allowed range of 1 to 6
-                    return languageManager.getMessage(
-                            String.format("error.set.priority.out-of-range.%s", language),
-                            language);
-                }
+            // Check if the number is within the allowed range of 1 to 6
+            if (number >= 1 && number <= 6) {
+                // Set the task priority to the user-provided number
+                task.setPriority(number);
+            } else if (number != 0) {
+                // Inform the user that the priority must be within the allowed range of 1 to 6
+                return languageManager.getMessage(
+                        String.format("error.set.priority.out-of-range.%s", language),
+                        language);
             }
         }
 
@@ -344,15 +350,34 @@ public class TaskProcessorImpl implements TaskProcessor {
                     language);
         }
 
-        int number;
-
         // Verifying that user's response is a number
+        int number;
         try {
             number = Integer.parseInt(userMessage.getText());
         } catch (NumberFormatException e) {
-            return languageManager.getMessage(
-                    String.format("error.set.difficulty.no-text.%s", language),
-                    language);
+            if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.no-difficulty", language)) {
+                task.setDifficulty(0);
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.very-easy", language)) {
+                task.setDifficulty(1);
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.easy", language)) {
+                task.setDifficulty(2);
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.moderate", language)) {
+                task.setDifficulty(3);
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.challenging", language)) {
+                task.setDifficulty(4);
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.difficult", language)) {
+                task.setDifficulty(5);
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.very-difficult", language)) {
+                task.setDifficulty(6);
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.extremely-difficult", language)) {
+                task.setDifficulty(7);
+            } else {
+                return languageManager.getMessage(
+                        String.format("error.set.difficulty.no-text.%s", language),
+                        language);
+            }
+
+            return null;
         }
 
         // Check if the number is within the allowed range of 0 to 7
@@ -509,7 +534,8 @@ public class TaskProcessorImpl implements TaskProcessor {
                 producerService.produceAnswer(
                         messageUtils.sendMessageGenerator(
                                 update,
-                                text),
+                                text,
+                                markupUtils.getDifficultyMarkupWithoutSkipCancelFinish(update)),
                         update);
             }
             case "TAG" -> {
@@ -665,7 +691,7 @@ public class TaskProcessorImpl implements TaskProcessor {
                 languageManager.getMessage(
                         String.format("task.delete.all-completed.%s", language),
                         language)
-                );
+        );
     }
 
     @Override
@@ -859,8 +885,8 @@ public class TaskProcessorImpl implements TaskProcessor {
         InlineKeyboardButton nextButton = new InlineKeyboardButton(">");
         InlineKeyboardButton completeButton = new InlineKeyboardButton(
                 languageManager.getMessage(
-                String.format("keyboard.tasks.detail.complete.%s", language),
-                language)
+                        String.format("keyboard.tasks.detail.complete.%s", language),
+                        language)
         );
         InlineKeyboardButton notCompletedButton = new InlineKeyboardButton(
                 languageManager.getMessage(

@@ -409,6 +409,90 @@ public class MarkupUtils {
         return new ReplyKeyboardMarkup(keyboard);
     }
 
+    public ReplyKeyboardMarkup getDifficultyMarkup(Update update) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        KeyboardRow row1 = getCancelSkipFinishKeyboard(update);
+        KeyboardRow row2 = new KeyboardRow();
+        KeyboardRow row3 = new KeyboardRow();
+        KeyboardRow row4 = new KeyboardRow();
+        KeyboardRow row5 = new KeyboardRow();
+
+        row2.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.no-difficulty.%s", language),
+                language));
+        row2.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.very-easy.%s", language),
+                language));
+        row3.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.easy.%s", language),
+                language));
+        row3.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.moderate.%s", language),
+                language));
+        row4.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.challenging.%s", language),
+                language));
+        row4.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.difficult.%s", language),
+                language));
+        row5.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.very-difficult.%s", language),
+                language));
+        row5.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.extremely-difficult.%s", language),
+                language));
+
+        keyboard.add(row1);
+        keyboard.add(row2);
+        keyboard.add(row3);
+        keyboard.add(row4);
+        keyboard.add(row5);
+
+        return new ReplyKeyboardMarkup(keyboard);
+    }
+
+    public ReplyKeyboardMarkup getDifficultyMarkupWithoutSkipCancelFinish(Update update) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        KeyboardRow row2 = new KeyboardRow();
+        KeyboardRow row3 = new KeyboardRow();
+        KeyboardRow row4 = new KeyboardRow();
+        KeyboardRow row5 = new KeyboardRow();
+
+        row2.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.no-difficulty.%s", language),
+                language));
+        row2.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.very-easy.%s", language),
+                language));
+        row3.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.easy.%s", language),
+                language));
+        row3.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.moderate.%s", language),
+                language));
+        row4.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.challenging.%s", language),
+                language));
+        row4.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.difficult.%s", language),
+                language));
+        row5.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.very-difficult.%s", language),
+                language));
+        row5.add(languageManager.getMessage(
+                String.format("keyboard.difficulty.extremely-difficult.%s", language),
+                language));
+
+        keyboard.add(row2);
+        keyboard.add(row3);
+        keyboard.add(row4);
+        keyboard.add(row5);
+
+        return new ReplyKeyboardMarkup(keyboard);
+    }
+
     public InlineKeyboardMarkup getSettingsMainMarkup(Update update) {
         String language = userUtils.getUserByUpdate(update).getLanguage();
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();

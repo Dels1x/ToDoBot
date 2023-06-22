@@ -2,6 +2,8 @@ package ua.delsix.utils;
 
 import org.springframework.stereotype.Component;
 import ua.delsix.entity.Task;
+import ua.delsix.entity.User;
+import ua.delsix.language.LanguageManager;
 
 import java.util.Arrays;
 import java.util.List;
@@ -9,7 +11,12 @@ import java.util.List;
 @Component
 public class TaskUtils {
 
+    private final LanguageManager languageManager;
     public static final List<String> states = Arrays.asList("CREATING_NAME", "CREATING_DESCRIPTION", "CREATING_DATE", "CREATING_PRIORITY", "CREATING_DIFFICULTY", "CREATING_TAG", "COMPLETED");
+
+    public TaskUtils(LanguageManager languageManager) {
+        this.languageManager = languageManager;
+    }
 
     public String getDifficultyDescription(Integer diff) {
         if (diff == null) {
@@ -53,9 +60,9 @@ public class TaskUtils {
                         _%s%s%s 🏷️#%s_""",
                 task.getName() == null ? "" :
                         task.getName(),
-                task.getDescription() == null ? "no description" :
+                task.getDescription() == null ? "" :
                         task.getDescription(),
-                task.getTargetDate() == null ? "No date specified" :
+                task.getTargetDate() == null ? "" :
                         String.format("📅 %s ", task.getTargetDate()),
                 getPriorityDescription(task.getPriority()).equals("❌") ? "" :
                         String.format("⭐️️ %s ", getPriorityDescription(task.getPriority())),
@@ -65,18 +72,12 @@ public class TaskUtils {
                         task.getTag());
     }
 
-    public String taskToStringInDetail(Task task) {
-        return "Task:\n\n" + String.format("""
-                        ✏️ Name: *%s*
-                        💬 Description: _%s_
-                        📅 Date: _%s_
-                        ⭐️ Priority: *%s*
-                        ⚡️ Difficulty: *%s*
-                        🏷️ Tag: #%s
-                        🕒 Created at: _%s_
-                        ❔ Completed: _%s_
-                        %s
-                        """,
+    public String taskToStringInDetail(Task task, User user) {
+        String language = user.getLanguage();
+        return String.format(
+                languageManager.getMessage(
+                        String.format("task.detail.main.%s", user.getLanguage()),
+                        language),
                 task.getName() == null ? "❌" : task.getName(),
                 task.getDescription() == null ? "❌" : task.getDescription(),
                 task.getTargetDate() == null ? "❌" : task.getTargetDate().toString(),
@@ -87,54 +88,41 @@ public class TaskUtils {
                 task.getStatus() == null ? "❌" :
                         task.getStatus().equals("Completed") ? "✅" : "❌",
                 task.getCompletionDate() == null ? "" :
-                        "⌛️ Completed at: ".concat(task.getCompletionDate().toString()));
+                       languageManager.getMessage(
+                               String.format("task.detail.completed-at.%s", language),
+                                       language)
+                               .concat(task.getCompletionDate().toString()));
     }
 
-    public String responseForEachState(Task task) {
+    public String responseForEachState(Task task, User user) {
         String state = task.getState();
+        String language = user.getLanguage();
+        String step;
 
-        return switch (state) {
-            case "CREATING_NAME" -> "Now let's create a *description* for your task, if you want to.";
-            case "CREATING_DESCRIPTION" -> """
-                    You can set a target *completion date* or a *deadline* for your task using the format "yyyy-MM-dd" (e.g. "2023-04-30")
-                        
-                    *You can also use today/tomorrow*""\";
-                    """;
-            case "CREATING_DATE" -> """
-                    You can also set a *priority* for your task - a number in range of 1-6:
-                   
-                    1 = Not important
-                    2 = Low
-                    3 = Medium
-                    4 = High
-                    5 = Very high
-                    6 = Extremely high
-                    """;
+        switch (state) {
+            case "CREATING_NAME" -> step = "description";
+            case "CREATING_DESCRIPTION" -> step = "date";
+            case "CREATING_DATE" -> step = "priority";
+            case "CREATING_PRIORITY" -> step = "difficulty";
+            case "CREATING_DIFFICULTY" -> step = "tag";
+            case "CREATING_TAG", "COMPLETED" -> step = "completed";
+            default -> {
+                return languageManager.getMessage(
+                        String.format("bot.error.%s", language),
+                        language);
+            }
+        }
 
-            case "CREATING_PRIORITY" -> """
-                    If you want to set a specific difficulty for your task - we can also do that.
-                  
-                    Enter a number in range of 0-7:
-                    0 = No difficulty
-                    1 = Very easy
-                    2 = Easy
-                    3 = Moderate
-                    4 = Challenging
-                    5 = Difficult
-                    6 = Very Difficult
-                    7 = Extremely difficult""";
-            case "CREATING_DIFFICULTY" ->
-                    "If you want to - you can set a specific tag for the task. It could be something like: (Goals, Programming, Chores etc.\"";
-            case "CREATING_TAG", "COMPLETED" -> String.format("""
-                            Your task is successfully created!
-                                                    
-                            If there is need, you can also create subtasks for this task using buttons or directly using this task's id: %d
-                                                    
-                            This is how your task looks like:
-                            %s""",
-                    task.getId(),
-                    taskToStringInDetail(task));
-            default -> "Unknown state error";
-        };
+        if(step.equals("completed")) {
+            return String.format(
+                    languageManager.getMessage(
+                    String.format("create.%s.%s", step, language),
+                            language),
+                    taskToStringInDetail(task, user));
+        } else {
+            return languageManager.getMessage(
+                    String.format("create.%s.%s", step, language),
+                    language);
+        }
     }
 }

@@ -10,7 +10,8 @@ public class LanguageManager {
         this.messageSource = messageSource;
     }
 
-    public String getMessage(String key, Locale language) {
+    public String getMessage(String key, String languageCode) {
+        Locale language = new Locale.Builder().setLanguageTag(languageCode).build();
         return messageSource.getMessage(key, null, language);
     }
 }

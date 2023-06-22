@@ -10,7 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 
 @Component
 public class MessageUtils {
-    public static SendMessage sendMessageGenerator(Update update, String text) {
+    public SendMessage sendMessageGenerator(Update update, String text) {
         Message message;
 
         if(update.hasCallbackQuery()) {
@@ -29,7 +29,7 @@ public class MessageUtils {
         return sendMessage;
     }
 
-    public static SendMessage sendMessageGenerator(Update update, String text, ReplyKeyboard markup) {
+    public SendMessage sendMessageGenerator(Update update, String text, ReplyKeyboard markup) {
         Message message;
 
         if(update.hasCallbackQuery()) {
@@ -48,7 +48,7 @@ public class MessageUtils {
         return sendMessage;
     }
 
-    public static EditMessageText editMessageGenerator(Update update, String text) {
+    public EditMessageText editMessageGenerator(Update update, String text) {
         var message = update.getCallbackQuery().getMessage();
         EditMessageText editMessage = new EditMessageText();
         editMessage.setMessageId(message.getMessageId());
@@ -59,7 +59,7 @@ public class MessageUtils {
         return editMessage;
     }
 
-    public static EditMessageText editMessageGenerator(Update update, String text, InlineKeyboardMarkup markup) {
+    public EditMessageText editMessageGenerator(Update update, String text, InlineKeyboardMarkup markup) {
         var message = update.getCallbackQuery().getMessage();
         EditMessageText editMessage = new EditMessageText();
         editMessage.setMessageId(message.getMessageId());

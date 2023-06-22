@@ -14,12 +14,12 @@ import ua.delsix.service.MainService;
 import ua.delsix.service.ProducerService;
 import ua.delsix.processor.TaskProcessor;
 import ua.delsix.enums.ServiceCommand;
+import ua.delsix.service.SettingsService;
 import ua.delsix.utils.MessageUtils;
 import ua.delsix.utils.UserUtils;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -28,15 +28,19 @@ public class MainServiceImpl implements MainService {
     private final LanguageManager languageManager;
 
     private final ProducerService producerService;
+    private final SettingsService settingsService;
     private final TaskProcessor taskProcessor;
     private final TaskRepository taskRepository;
+    private final MessageUtils messageUtils;
     private final UserUtils userUtils;
 
-    public MainServiceImpl(LanguageManager languageManager, ProducerService producerService, TaskProcessor taskProcessor, TaskRepository taskRepository, UserUtils userUtils) {
+    public MainServiceImpl(LanguageManager languageManager, ProducerService producerService, SettingsService settingsService, TaskProcessor taskProcessor, TaskRepository taskRepository, MessageUtils messageUtils, UserUtils userUtils) {
         this.languageManager = languageManager;
         this.producerService = producerService;
+        this.settingsService = settingsService;
         this.taskProcessor = taskProcessor;
         this.taskRepository = taskRepository;
+        this.messageUtils = messageUtils;
         this.userUtils = userUtils;
     }
 
@@ -65,7 +69,7 @@ public class MainServiceImpl implements MainService {
     private void processCallbackQuery(Update update) {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
-        EditMessageText answer = MessageUtils.editMessageGenerator(update, "Unknown error. Please contact developer using his telegram (@dels1x).");
+        EditMessageText answer = messageUtils.editMessageGenerator(update, "Unknown error. Please contact developer using his telegram (@dels1x).");
         String operation = callbackData[0];
 
         log.trace("CallbackData: "+ Arrays.toString(callbackData));
@@ -88,6 +92,17 @@ public class MainServiceImpl implements MainService {
             if (callbackData[1].equals("CONFIRM")) {
                 answer = taskProcessor.processDeleteAllTasks(update);
             }
+        } else if (operation.startsWith("SETTINGS")) {
+            if (callbackData[1].equals("LANGUAGE")) {
+                if (callbackData.length == 2) {
+                    answer = settingsService.processLanguage(update);
+                } else {
+                    if (callbackData[2].equals("SET")) {
+                        settingsService.setLanguage(update);
+                        return;
+                    }
+                }
+            }
         }
 
         if(answer == null) {
@@ -100,9 +115,9 @@ public class MainServiceImpl implements MainService {
 
     private SendMessage processUserMessage(Update update, ServiceCommand userCommand) {
         String answerText = "";
-        SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, "");
-        User user = userUtils.getUserByTag(update);
-        String userLanguage = user.getLanguage();
+        SendMessage answerMessage = messageUtils.sendMessageGenerator(update, "");
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
 
         log.trace(update.getMessage().getFrom().toString());
 
@@ -114,18 +129,19 @@ public class MainServiceImpl implements MainService {
         switch (userCommand) {
             case HELP -> {
                 answerText = languageManager.getMessage(
-                        String.format("help.%s", userLanguage),
-                        new Locale.Builder().setLanguageTag(userLanguage).build());
+                        String.format("help.%s", language),
+                        language);
 
                 answerMessage.setText(answerText);
             }
             case START -> {
                 answerText = languageManager.getMessage(
-                        String.format("start.%s", userLanguage),
-                        new Locale.Builder().setLanguageTag(userLanguage).build());
+                        String.format("start.%s", language),
+                        language);
 
                 answerMessage.setText(answerText);
             }
+            case SETTINGS -> answerMessage = settingsService.getSettings(update);
             case CREATE_TASK -> answerMessage = taskProcessor.processCreateTask(update);
             case TASKS -> answerMessage = taskProcessor.processGetAllTasks(update, "GET_ALL_TASKS");
             case TODAY_TASKS -> answerMessage = taskProcessor.processGetAllTasks(update, "GET_TODAY_TASKS");
@@ -155,17 +171,15 @@ public class MainServiceImpl implements MainService {
                             answerMessage = taskProcessor.editTask(update, editTaskOptional.get());
                         } else {
                             answerText = languageManager.getMessage(String.format(
-                                    "unknown-command.%s", userLanguage),
-                                    new Locale.Builder().setLanguageTag(userLanguage).build());
-
+                                    "unknown-command.%s", language),
+                                    language);
                             answerMessage.setText(answerText);
                         }
                     }
                 } else {
                     answerText = languageManager.getMessage(
-                            String.format("unknown-command.%s", userLanguage),
-                            new Locale.Builder().setLanguageTag(userLanguage).build());
-                    
+                            String.format("unknown-command.%s", language),
+                            language);
                     answerMessage.setText(answerText);
                 }
             }

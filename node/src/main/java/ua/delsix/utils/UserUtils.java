@@ -16,7 +16,7 @@ public class UserUtils {
         this.userRepository = userRepository;
     }
 
-    public User getUserByTag(Update update) {
+    public User getUserByUpdate(Update update) {
         org.telegram.telegrambots.meta.api.objects.User tgUser;
         
         if(update.hasMessage()) {
@@ -48,5 +48,11 @@ public class UserUtils {
                     .build();
             return userRepository.save(newUser);
         }
+    }
+
+    public void setLanguage(Update update, String language) {
+        User user = getUserByUpdate(update);
+        user.setLanguage(language);
+        userRepository.save(user);
     }
 }

@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
+import ua.delsix.language.LanguageManager;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.repository.UserRepository;
 import ua.delsix.service.ProducerService;
@@ -30,20 +31,24 @@ import java.util.*;
 @Service
 @Log4j
 public class TaskProcessorImpl implements TaskProcessor {
+    private final MessageUtils messageUtils;
     private final MarkupUtils markupUtils;
     private final UserUtils userUtils;
     private final TaskUtils taskUtils;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final LanguageManager languageManager;
     private final ProducerService producerService;
     private static final int TASK_PER_PAGE = 4;
 
-    public TaskProcessorImpl(MarkupUtils markupUtils, UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, ProducerService producerService) {
+    public TaskProcessorImpl(MessageUtils messageUtils, MarkupUtils markupUtils, UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, LanguageManager languageManager, ProducerService producerService) {
+        this.messageUtils = messageUtils;
         this.markupUtils = markupUtils;
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.taskUtils = taskUtils;
+        this.languageManager = languageManager;
         this.producerService = producerService;
     }
 
@@ -53,53 +58,63 @@ public class TaskProcessorImpl implements TaskProcessor {
     public SendMessage processCreateTask(Update update) {
         // creating a new task
         Task newTask = Task.builder()
-                .userId(userUtils.getUserByTag(update).getId())
+                .userId(userUtils.getUserByUpdate(update).getId())
                 .name("Unnamed " + (taskRepository.count() + 1))
                 .state("CREATING_NAME")
                 .status("Uncompleted")
                 .createdAt(LocalDate.now())
                 .build();
 
-        // add one to user's task count
-        User user = userUtils.getUserByTag(update);
-        userRepository.save(user);
+        // get user's preferred language
+        String languageCode = userUtils.getUserByUpdate(update).getLanguage();
 
         // saving the task to the table
         taskRepository.save(newTask);
 
         // sending answerMessage to MainService
-        return MessageUtils.sendMessageGenerator(
+        return messageUtils.sendMessageGenerator(
                 update,
-                "Alright, a new task. To proceed, let's choose a name for the task first.",
-                markupUtils.getCancelSkipFinishMarkup());
+                languageManager.getMessage(
+                        String.format("create.start.%s", languageCode),
+                        languageCode),
+                markupUtils.getCancelSkipFinishMarkup(update));
     }
 
     @Override
     public SendMessage processCreatingTask(Update update) {
-        SendMessage answerMessage = MessageUtils.sendMessageGenerator(update, "");
-        Optional<Task> taskOptional = taskRepository.findTopByUserIdOrderByIdDesc(userUtils.getUserByTag(update).getId());
+        SendMessage answerMessage = messageUtils.sendMessageGenerator(update, "");
+        User user = userUtils.getUserByUpdate(update);
+        // get user's preferred language
+        String languageCode = user.getLanguage();
+
+        Optional<Task> taskOptional = taskRepository.findTopByUserIdOrderByIdDesc(user.getId());
         if (taskOptional.isEmpty()) {
             log.error("User does not have any tasks");
-            answerMessage.setText("Seems like there is an issue with the bot.\n\n Please, come back later");
+            answerMessage.setText(
+                    languageManager.getMessage(
+                            String.format("bot.error.%s", languageCode),
+                            languageCode));
             return answerMessage;
         }
+
         Message userMessage = update.getMessage();
         ServiceCommand userCommand = ServiceCommand.fromValue(userMessage.getText());
         Task task = taskOptional.get();
         String taskState = task.getState();
 
-        User user = userUtils.getUserByTag(update);
-
         //set text according to task's state
-        answerMessage.setText(taskUtils.responseForEachState(task));
-        ReplyKeyboardMarkup markup = markupUtils.getCancelSkipFinishMarkup();
+        answerMessage.setText(taskUtils.responseForEachState(task, user));
+        ReplyKeyboardMarkup markup = markupUtils.getCancelSkipFinishMarkup(update);
         answerMessage.setReplyMarkup(markup);
         String answerText;
 
         if (userCommand.equals(ServiceCommand.CANCEL)) {
             // Delete task from tasks table
             taskRepository.deleteById(task.getId());
-            answerMessage.setText("Creation of the task was successfully cancelled.");
+            answerMessage.setText(
+                    languageManager.getMessage(
+                            String.format("create.cancel.%s", languageCode),
+                            languageCode));
             answerMessage.setReplyMarkup(null);
             userRepository.save(user);
 
@@ -111,8 +126,8 @@ public class TaskProcessorImpl implements TaskProcessor {
             taskRepository.save(task);
 
             switch (taskState) {
-                case "CREATING_DATE" -> answerMessage.setReplyMarkup(markupUtils.getDateMarkup());
-                case "CREATING_PRIORITY" -> answerMessage.setReplyMarkup(markupUtils.getPriorityMarkup());
+                case "CREATING_DATE" -> answerMessage.setReplyMarkup(markupUtils.getDateMarkup(update));
+                case "CREATING_PRIORITY" -> answerMessage.setReplyMarkup(markupUtils.getPriorityMarkup(update));
                 case "CREATING_TAG" -> answerMessage.setReplyMarkup(markupUtils.getTagsReplyMarkup(update));
                 case "COMPLETED" -> answerMessage.setReplyMarkup(null);
             }
@@ -120,16 +135,15 @@ public class TaskProcessorImpl implements TaskProcessor {
             return answerMessage;
         } else if (userCommand.equals(ServiceCommand.FINISH)) {
             // set task's state to COMPLETED
-            //TODO move this block into a separate method
             task.setState("COMPLETED");
             taskRepository.save(task);
 
-            // add one to user's task completed count
+            // increment user's task count by 1
             user.setTaskCompleted(user.getTaskCompleted() + 1);
             userRepository.save(user);
 
             // get completed task answer and set its reply markup to null and return it
-            var newAnswerMessage = completedTaskAnswer(answerMessage, task);
+            var newAnswerMessage = completedTaskAnswer(answerMessage, task, user);
             newAnswerMessage.setReplyMarkup(null);
             return newAnswerMessage;
         }
@@ -137,7 +151,7 @@ public class TaskProcessorImpl implements TaskProcessor {
         // handling different task's states
         switch (taskState) {
             case "CREATING_NAME" -> {
-                answerText = setTaskName(userMessage, task);
+                answerText = setTaskName(update, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
@@ -146,27 +160,27 @@ public class TaskProcessorImpl implements TaskProcessor {
                 }
             }
             case "CREATING_DESCRIPTION" -> {
-                answerText = setTaskDescription(userMessage, task);
+                answerText = setTaskDescription(update, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
                 } else {
-                    answerMessage.setReplyMarkup(markupUtils.getDateMarkup());
+                    answerMessage.setReplyMarkup(markupUtils.getDateMarkup(update));
                     task.setState("CREATING_DATE");
                 }
             }
             case "CREATING_DATE" -> {
-                answerText = setTaskDate(userMessage, task);
+                answerText = setTaskDate(update, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
                 } else {
-                    answerMessage.setReplyMarkup(markupUtils.getPriorityMarkup());
+                    answerMessage.setReplyMarkup(markupUtils.getPriorityMarkup(update));
                     task.setState("CREATING_PRIORITY");
                 }
             }
             case "CREATING_PRIORITY" -> {
-                answerText = setTaskPriority(userMessage, task);
+                answerText = setTaskPriority(update, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
@@ -175,7 +189,7 @@ public class TaskProcessorImpl implements TaskProcessor {
                 }
             }
             case "CREATING_DIFFICULTY" -> {
-                answerText = setTaskDifficulty(userMessage, task);
+                answerText = setTaskDifficulty(update, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
@@ -185,7 +199,7 @@ public class TaskProcessorImpl implements TaskProcessor {
                 }
             }
             case "CREATING_TAG" -> {
-                answerText = setTaskTag(userMessage, task);
+                answerText = setTaskTag(update, task);
 
                 if (answerText != null) {
                     answerMessage.setText(answerText);
@@ -194,11 +208,11 @@ public class TaskProcessorImpl implements TaskProcessor {
                     task.setState("COMPLETED");
                     taskRepository.save(task);
 
-                    // add one to user's task completed count
+                    // increment user's task count by 1
                     user.setTaskCompleted(user.getTaskCompleted() + 1);
                     userRepository.save(user);
 
-                    var message = completedTaskAnswer(answerMessage, task);
+                    var message = completedTaskAnswer(answerMessage, task, user);
                     message.setReplyMarkup(null);
                     return message;
                 }
@@ -209,10 +223,14 @@ public class TaskProcessorImpl implements TaskProcessor {
         return answerMessage;
     }
 
-    private String setTaskName(Message userMessage, Task task) {
+    private String setTaskName(Update update, Task task) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+        Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
-            return "Please, send a text for the name of your task";
+            return languageManager.getMessage(
+                    String.format("error.set.name.no-text.%s", language),
+                    language);
         }
         task.setName(userMessage.getText());
         taskRepository.save(task);
@@ -220,11 +238,15 @@ public class TaskProcessorImpl implements TaskProcessor {
         return null;
     }
 
-    private String setTaskDescription(Message userMessage, Task task) {
+    private String setTaskDescription(Update update, Task task) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+        Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
 
-            return "Please, send a text for the description of your task";
+            return languageManager.getMessage(
+                    String.format("error.set.description.no-text.%s", language),
+                    language);
         }
 
         task.setDescription(userMessage.getText());
@@ -232,27 +254,28 @@ public class TaskProcessorImpl implements TaskProcessor {
         return null;
     }
 
-    private String setTaskDate(Message userMessage, Task task) {
-        String errorMessage = "Please enter the task target completion date in the format \"yyyy-MM-dd\", e.g. \"2023-04-30\"";
+    private String setTaskDate(Update update, Task task) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+        Message userMessage = update.getMessage();
+        String errorMessage = languageManager.getMessage(
+                String.format("error.set.date.no-text.%s", language),
+                language);
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
             return errorMessage;
         }
         LocalDate date;
-        String text = userMessage.getText();
 
         // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
         try {
             //TODO add ability to choose date by typing "in X days"
-            if (text.equalsIgnoreCase("today")) {
-                // Get the current date
-                date = LocalDate.now();
-            } else if (text.equalsIgnoreCase("tomorrow")) {
-                // Get the date of tomorrow
-                date = LocalDate.now().plusDays(1);
-            } else {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                date = LocalDate.parse(userMessage.getText(), formatter);
+            switch (userMessage.getText().toLowerCase()) {
+                case "today", "сегодня", "сьогодні" -> date = LocalDate.now();
+                case "tomorrow", "завтра" -> date = LocalDate.now().plusDays(1);
+                default -> {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    date = LocalDate.parse(userMessage.getText(), formatter);
+                }
             }
         } catch (DateTimeParseException e) {
             return errorMessage;
@@ -263,43 +286,47 @@ public class TaskProcessorImpl implements TaskProcessor {
         return null;
     }
 
-    private String setTaskPriority(Message userMessage, Task task) {
+    private String setTaskPriority(Update update, Task task) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+        Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
-            return "Please, send a number for the priority of your task";
+            return languageManager.getMessage(
+                    String.format("error.set.priority.no-text.%s", language),
+                    language);
         }
 
-        String text = userMessage.getText();
+        String text = userMessage.getText().toLowerCase();
 
-        if (text.equalsIgnoreCase("Not important")) {
-            task.setPriority(1);
-        } else if (text.equalsIgnoreCase("Low")) {
-            task.setPriority(2);
-        } else if (text.equalsIgnoreCase("Medium")) {
-            task.setPriority(3);
-        } else if (text.equalsIgnoreCase("High")) {
-            task.setPriority(4);
-        } else if (text.equalsIgnoreCase("Very high")) {
-            task.setPriority(5);
-        } else if (text.equalsIgnoreCase("Extremely high")) {
-            task.setPriority(6);
-        } else {
-            int number;
+        switch (text) {
+            case "not important", "не важно", "не важливо" -> task.setPriority(1);
+            case "low", "низкий", "низький" -> task.setPriority(2);
+            case "medium", "средний", "середній" -> task.setPriority(3);
+            case "high", "высокий", "високий" -> task.setPriority(4);
+            case "very high", "очень высокий", "дуже високий" -> task.setPriority(5);
+            case "extremely high", "чрезвычайно высокий", "надзвичайно високий" -> task.setPriority(6);
+            default -> {
+                int number;
 
-            // Verifying that user's response is a number
-            try {
-                number = Integer.parseInt(text);
-            } catch (NumberFormatException e) {
-                return "Please, write a number from 1 to 6 for the priority.";
-            }
+                // Verifying that user's response is a number
+                try {
+                    number = Integer.parseInt(text);
+                } catch (NumberFormatException e) {
+                    return languageManager.getMessage(
+                            String.format("error.set.priority.no-text.%s", language),
+                            language);
+                }
 
-            // Check if the number is within the allowed range of 1 to 6
-            if (number >= 1 && number <= 6) {
-                // Set the task priority to the user-provided number
-                task.setPriority(number);
-            } else if (number != 0) {
-                // Inform the user that the priority must be within the allowed range of 1 to 6
-                return "Allowed range for priority is 1-6.";
+                // Check if the number is within the allowed range of 1 to 6
+                if (number >= 1 && number <= 6) {
+                    // Set the task priority to the user-provided number
+                    task.setPriority(number);
+                } else if (number != 0) {
+                    // Inform the user that the priority must be within the allowed range of 1 to 6
+                    return languageManager.getMessage(
+                            String.format("error.set.priority.out-of-range.%s", language),
+                            language);
+                }
             }
         }
 
@@ -307,10 +334,14 @@ public class TaskProcessorImpl implements TaskProcessor {
         return null;
     }
 
-    private String setTaskDifficulty(Message userMessage, Task task) {
+    private String setTaskDifficulty(Update update, Task task) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+        Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
-            return "Please, send a number in range of 0 to 7 for the difficulty.";
+            return languageManager.getMessage(
+                    String.format("error.set.difficulty.no-text.%s", language),
+                    language);
         }
 
         int number;
@@ -319,7 +350,9 @@ public class TaskProcessorImpl implements TaskProcessor {
         try {
             number = Integer.parseInt(userMessage.getText());
         } catch (NumberFormatException e) {
-            return "Please, send a number in range of 0 to 7 for the difficulty.";
+            return languageManager.getMessage(
+                    String.format("error.set.difficulty.no-text.%s", language),
+                    language);
         }
 
         // Check if the number is within the allowed range of 0 to 7
@@ -328,20 +361,26 @@ public class TaskProcessorImpl implements TaskProcessor {
             task.setDifficulty(number);
         } else {
             // Inform the user that the priority must be within the allowed range of 0 to 7
-            return "Allowed range for difficulty is 0-7.";
+            return languageManager.getMessage(
+                    String.format("error.set.priority.out-of-range.%s", language),
+                    language);
         }
 
         taskRepository.save(task);
         return null;
     }
 
-    private String setTaskTag(Message userMessage, Task task) {
+    private String setTaskTag(Update update, Task task) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+        Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
-            return "Please, send a text for the tag of your task";
+            return languageManager.getMessage(
+                    String.format("error.set.priority.no-text.%s", language),
+                    language);
         }
 
-        if(userMessage.getText().equals("Untagged")) {
+        if (userMessage.getText().equals("Untagged")) {
             task.setTag(null);
         } else {
             task.setTag(userMessage.getText());
@@ -363,7 +402,7 @@ public class TaskProcessorImpl implements TaskProcessor {
         log.trace("callbackData: " + Arrays.toString(callbackData));
 
         // get user from database to later get needed task using user's id
-        User user = userUtils.getUserByTag(update);
+        User user = userUtils.getUserByUpdate(update);
 
         // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
         int taskIndex = pageIndex * TASK_PER_PAGE + pageTaskIndex;
@@ -388,94 +427,101 @@ public class TaskProcessorImpl implements TaskProcessor {
             return null;
         }
 
-        return MessageUtils.editMessageGenerator(
+        return messageUtils.editMessageGenerator(
                 update,
-                taskUtils.taskToStringInDetail(taskToEdit),
-                markupUtils.getEditMarkup(callbackData, operation));
+                taskUtils.taskToStringInDetail(taskToEdit, user),
+                markupUtils.getEditMarkup(callbackData, operation, update));
     }
 
     private boolean taskSwitchStateToEdit(Task task, Update update) {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
 
+        String language = userUtils.getUserByUpdate(update).getLanguage();
+
         switch (callbackData[5]) {
             case "NAME" -> {
                 task.setState("EDITING_NAME");
-                String text = String.format("Enter a new title for task \"%s\"", task.getName());
+                String text = String.format(
+                        languageManager.getMessage(
+                                String.format("edit.name.%s", language),
+                                language),
+                        task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        MessageUtils.sendMessageGenerator(
+                        messageUtils.sendMessageGenerator(
                                 update,
                                 text),
                         update);
             }
             case "DESC" -> {
                 task.setState("EDITING_DESCRIPTION");
-                String text = String.format("Enter a new description for task \"%s\"", task.getName());
+                String text = String.format(
+                        languageManager.getMessage(
+                                String.format("edit.description.%s", language),
+                                language),
+                        task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        MessageUtils.sendMessageGenerator(
+                        messageUtils.sendMessageGenerator(
                                 update,
                                 text),
                         update);
             }
             case "DATE" -> {
                 task.setState("EDITING_DATE");
-                String text = String.format("Enter a new date for task \"%s\"", task.getName());
+                String text = String.format(
+                        languageManager.getMessage(
+                                String.format("edit.date.%s", language),
+                                language),
+                        task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        MessageUtils.sendMessageGenerator(
+                        messageUtils.sendMessageGenerator(
                                 update,
                                 text,
-                                markupUtils.getDateMarkupWithoutSkipCancelFinish()),
+                                markupUtils.getDateMarkupWithoutSkipCancelFinish(update)),
                         update);
             }
             case "PRIOR" -> {
                 task.setState("EDITING_PRIORITY");
-                String text = String.format("""
-                        Enter a new priority for task "%s"
-                                                
-                        1 = Not important
-                        2 = Low priority
-                        3 = Medium priority
-                        4 = High priority
-                        5 = Very high priority
-                        6 = Urgent priority""", task.getName());
+                String text = String.format(
+                        languageManager.getMessage(
+                                String.format("edit.priority.%s", language),
+                                language),
+                        task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        MessageUtils.sendMessageGenerator(
+                        messageUtils.sendMessageGenerator(
                                 update,
                                 text,
-                                markupUtils.getPriorityMarkupWithoutSkipCancelFinish()),
+                                markupUtils.getPriorityMarkupWithoutSkipCancelFinish(update)),
                         update);
             }
             case "DIFF" -> {
                 task.setState("EDITING_DIFFICULTY");
-                String text = String.format("""
-                        Enter a new difficulty for task "%s"
-                                                
-                        Enter a number in range of 0-7:
-                        0 = No difficulty
-                        1 = Very easy
-                        2 = Easy
-                        3 = Moderate
-                        4 = Challenging
-                        5 = Difficult
-                        6 = Very Difficult
-                        7 = Extremely difficult""", task.getName());
+                String text = String.format(
+                        languageManager.getMessage(
+                                String.format("edit.difficulty.%s", language),
+                                language),
+                        task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        MessageUtils.sendMessageGenerator(
+                        messageUtils.sendMessageGenerator(
                                 update,
                                 text),
                         update);
             }
             case "TAG" -> {
                 task.setState("EDITING_TAG");
-                String text = String.format("Enter a new tag for task \"%s\"", task.getName());
+                String text = String.format(
+                        languageManager.getMessage(
+                                String.format("edit.tag.%s", language),
+                                language),
+                        task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        MessageUtils.sendMessageGenerator(
+                        messageUtils.sendMessageGenerator(
                                 update,
                                 text,
                                 markupUtils.getTagsReplyMarkupWithoutCancelSkipFinish(update)),
@@ -494,92 +540,98 @@ public class TaskProcessorImpl implements TaskProcessor {
 
     @Override
     public SendMessage editTask(Update update, Task task) {
-        //TODO
-        log.trace(task.toString());
         Message msg = update.getMessage();
         String msgText = msg.getText();
-        SendMessage answer = MessageUtils.sendMessageGenerator(update, "");
+        SendMessage answer = messageUtils.sendMessageGenerator(update, "");
         String answerText;
-
+        String language = userUtils.getUserByUpdate(update).getLanguage();
 
         switch (task.getState()) {
             case "EDITING_NAME" -> {
-                answerText = setTaskName(msg, task);
+                answerText = setTaskName(update, task);
 
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format("Title of the task set to: \"%s\"", msgText));
+                    answer.setText(String.format(languageManager.getMessage(
+                            String.format("edit.finish.name.%s", language),
+                            language), msgText));
                     task.setState("COMPLETED");
                 }
             }
             case "EDITING_DESCRIPTION" -> {
-                answerText = setTaskDescription(msg, task);
+                answerText = setTaskDescription(update, task);
 
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format("Description of the task \"%s\" set to: \"%s\"",
+                    answer.setText(String.format(languageManager.getMessage(
+                                    String.format("edit.finish.description.%s", language),
+                                    language),
                             task.getName(),
                             msgText));
                     task.setState("COMPLETED");
                 }
             }
             case "EDITING_DATE" -> {
-                answerText = setTaskDate(msg, task);
+                answerText = setTaskDate(update, task);
 
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format("Date of the task \"%s\" set to: \"%s\"",
+                    answer.setText(String.format(languageManager.getMessage(
+                                    String.format("edit.finish.date.%s", language),
+                                    language),
                             task.getName(),
                             task.getTargetDate()));
                     task.setState("COMPLETED");
                 }
             }
             case "EDITING_PRIORITY" -> {
-                answerText = setTaskPriority(msg, task);
+                answerText = setTaskPriority(update, task);
 
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format("Priority of the task \"%s\" set to: \"%s\"",
+                    answer.setText(String.format(languageManager.getMessage(
+                                    String.format("edit.finish.priority.%s", language),
+                                    language),
                             task.getName(),
                             taskUtils.getPriorityDescription(task.getPriority())));
                     task.setState("COMPLETED");
                 }
             }
             case "EDITING_DIFFICULTY" -> {
-                answerText = setTaskDifficulty(msg, task);
+                answerText = setTaskDifficulty(update, task);
 
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format("Difficulty of the task \"%s\" set to: \"%s\"",
+                    answer.setText(String.format(languageManager.getMessage(
+                                    String.format("edit.finish.difficulty.%s", language),
+                                    language),
                             task.getName(),
                             taskUtils.getDifficultyDescription(task.getDifficulty())));
                     task.setState("COMPLETED");
                 }
             }
             case "EDITING_TAG" -> {
-                answerText = setTaskTag(msg, task);
+                answerText = setTaskTag(update, task);
 
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format("Tag of the task \"%s\" set to: \"%s\"",
+                    answer.setText(String.format(languageManager.getMessage(
+                                    String.format("edit.finish.tag.%s", language),
+                                    language),
                             task.getName(),
                             task.getTag()));
                     task.setState("COMPLETED");
                 }
             }
-
         }
 
-        log.trace(answer.getText());
-
         taskRepository.save(task);
-
         return answer;
     }
 
@@ -588,6 +640,7 @@ public class TaskProcessorImpl implements TaskProcessor {
 
     @Override
     public SendMessage processDeleteAllCompletedTasksConfirmation(Update update) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
         // setting up keyboard
         List<InlineKeyboardButton> keyboard = new ArrayList<>();
         InlineKeyboardButton confirmButton = new InlineKeyboardButton("Confirm");
@@ -595,22 +648,29 @@ public class TaskProcessorImpl implements TaskProcessor {
         keyboard.add(confirmButton);
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
 
-        return MessageUtils.sendMessageGenerator(update,
-                "Are you sure you want to do it? All your completed tasks will be deleted, hence this will also delete all statistics related to the tasks",
+        return messageUtils.sendMessageGenerator(update,
+                languageManager.getMessage(
+                        String.format("task.delete.all-completed-confirm.%s", language),
+                        language),
                 markup);
     }
 
     @Override
     public EditMessageText processDeleteAllCompletedTasks(Update update) {
-        User user = userUtils.getUserByTag(update);
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
         taskRepository.deleteAllCompletedTasks(user.getId());
 
-        return MessageUtils.editMessageGenerator(update,
-                "All completed tasks successfully deleted!");
+        return messageUtils.editMessageGenerator(update,
+                languageManager.getMessage(
+                        String.format("task.delete.all-completed.%s", language),
+                        language)
+                );
     }
 
     @Override
     public SendMessage processDeleteAllTasksConfirmation(Update update) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
         // setting up keyboard
         List<InlineKeyboardButton> keyboard = new ArrayList<>();
         InlineKeyboardButton confirmButton = new InlineKeyboardButton("Confirm");
@@ -618,18 +678,23 @@ public class TaskProcessorImpl implements TaskProcessor {
         keyboard.add(confirmButton);
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
 
-        return MessageUtils.sendMessageGenerator(update,
-                "Are you sure you want to do it? ALL your tasks will be deleted, hence this will also delete all your statistics",
+        return messageUtils.sendMessageGenerator(update,
+                languageManager.getMessage(
+                        String.format("task.delete.all.%s", language),
+                        language),
                 markup);
     }
 
     @Override
     public EditMessageText processDeleteAllTasks(Update update) {
-        User user = userUtils.getUserByTag(update);
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
         taskRepository.deleteAllTasks(user.getId());
 
-        return MessageUtils.editMessageGenerator(update,
-                "All your tasks now aresuccessfully deleted!");
+        return messageUtils.editMessageGenerator(update,
+                languageManager.getMessage(
+                        String.format("task.delete.all-confirm.%s", language),
+                        language));
     }
 
     @Override
@@ -642,26 +707,33 @@ public class TaskProcessorImpl implements TaskProcessor {
         log.trace("callbackData: " + Arrays.toString(callbackData));
 
         // get user from database to later get needed task using user's id
-        User user = userUtils.getUserByTag(update);
+        User user = userUtils.getUserByUpdate(update);
 
         // get overall task index with pageIndex * tasksPerPageAmount + pageTaskIndex formula
         int taskIndex = pageIndex * TASK_PER_PAGE + pageTaskIndex;
 
         // get list of tasks
         List<Task> tasks = getTasks(user, operation);
+        log.trace(tasks);
 
         if (tasks == null || tasks.size() == 0) {
             log.error("tasks is null");
             return null;
         }
 
-        Task taskToDelete = tasks.get(taskIndex);
-        taskRepository.delete(taskToDelete);
+        try {
+            Task taskToDelete = tasks.get(taskIndex);
+            taskRepository.delete(taskToDelete);
+        } catch (IndexOutOfBoundsException e) {
+            log.error(e.getMessage());
+            return returnToAllTasks(update, operation);
+        }
 
         return returnToAllTasks(update, operation);
     }
 
     private EditMessageText processTasksDeleteConfirm(Update update, String operation) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
         CallbackQuery query = update.getCallbackQuery();
         String[] callbackData = query.getData().split("/");
         int pageIndex = Integer.parseInt(callbackData[2]);
@@ -669,7 +741,9 @@ public class TaskProcessorImpl implements TaskProcessor {
 
         log.trace("callbackData: " + Arrays.toString(callbackData));
 
-        String text = "Are you sure you wish to delete this task";
+        String text = languageManager.getMessage(
+                String.format("keyboard.tasks.detail.complete.%s", language),
+                language);
 
         //setting up keyboard
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
@@ -688,7 +762,7 @@ public class TaskProcessorImpl implements TaskProcessor {
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(keyboard);
 
-        return MessageUtils.editMessageGenerator(update, text, markup);
+        return messageUtils.editMessageGenerator(update, text, markup);
     }
 
     // GET methods
@@ -716,7 +790,8 @@ public class TaskProcessorImpl implements TaskProcessor {
             return null;
         }
         // get user from database to later get needed task using user's id
-        User user = userUtils.getUserByTag(update);
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
 
         List<Task> tasks = getTasks(user, operation);
 
@@ -777,15 +852,36 @@ public class TaskProcessorImpl implements TaskProcessor {
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
         List<InlineKeyboardButton> prevNextButtons = new ArrayList<>();
         List<InlineKeyboardButton> configurationButtons = new ArrayList<>();
+        List<InlineKeyboardButton> configurationButtons2 = new ArrayList<>();
 
         // setting up buttons
-        InlineKeyboardButton prevButton = new InlineKeyboardButton("Previous");
-        InlineKeyboardButton nextButton = new InlineKeyboardButton("Next");
-        InlineKeyboardButton completeButton = new InlineKeyboardButton("Complete");
-        InlineKeyboardButton uncompleteButton = new InlineKeyboardButton("Uncomplete");
-        InlineKeyboardButton editButton = new InlineKeyboardButton("Edit");
-        InlineKeyboardButton deleteButton = new InlineKeyboardButton("Delete");
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
+        InlineKeyboardButton prevButton = new InlineKeyboardButton("<");
+        InlineKeyboardButton nextButton = new InlineKeyboardButton(">");
+        InlineKeyboardButton completeButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                String.format("keyboard.tasks.detail.complete.%s", language),
+                language)
+        );
+        InlineKeyboardButton notCompletedButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                        String.format("keyboard.tasks.detail.uncomplete.%s", language),
+                        language)
+        );
+        InlineKeyboardButton editButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                        String.format("keyboard.tasks.detail.edit.%s", language),
+                        language)
+        );
+        InlineKeyboardButton deleteButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                        String.format("keyboard.tasks.detail.delete.%s", language),
+                        language)
+        );
+        InlineKeyboardButton backButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                        String.format("keyboard.tasks.detail.back.%s", language),
+                        language)
+        );
 
         // setting callback data and adding buttons to keyboard
         if (taskIndex > 0) {
@@ -797,27 +893,28 @@ public class TaskProcessorImpl implements TaskProcessor {
             prevNextButtons.add(nextButton);
         }
         if (task.getStatus().equals("Completed")) {
-            uncompleteButton.setCallbackData(String.format("%s/TASK/%d/%d/UNCOMPLETE", operation, pageIndex, pageTaskIndex));
-            configurationButtons.add(uncompleteButton);
+            notCompletedButton.setCallbackData(String.format("%s/TASK/%d/%d/UNCOMPLETE", operation, pageIndex, pageTaskIndex));
+            configurationButtons.add(notCompletedButton);
         } else {
             completeButton.setCallbackData(String.format("%s/TASK/%d/%d/COMPLETE", operation, pageIndex, pageTaskIndex));
             configurationButtons.add(completeButton);
         }
         editButton.setCallbackData(String.format("%s/TASK/%d/%d/EDIT", operation, pageIndex, pageTaskIndex));
         deleteButton.setCallbackData(String.format("%s/TASK/%d/%d/DELETE_CONFIRM", operation, pageIndex, pageTaskIndex));
-        cancelButton.setCallbackData(String.format("%s/TASK/%d/%d/CANCEL", operation, pageIndex, pageTaskIndex));
+        backButton.setCallbackData(String.format("%s/TASK/%d/%d/CANCEL", operation, pageIndex, pageTaskIndex));
 
         configurationButtons.add(editButton);
-        configurationButtons.add(deleteButton);
-        configurationButtons.add(cancelButton);
+        configurationButtons2.add(deleteButton);
+        configurationButtons2.add(backButton);
 
         keyboard.add(prevNextButtons);
         keyboard.add(configurationButtons);
+        keyboard.add(configurationButtons2);
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(keyboard);
 
-        return MessageUtils.editMessageGenerator(update, taskUtils.taskToStringInDetail(task), markup);
+        return messageUtils.editMessageGenerator(update, taskUtils.taskToStringInDetail(task, user), markup);
     }
 
     @Override
@@ -834,7 +931,7 @@ public class TaskProcessorImpl implements TaskProcessor {
 
         Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, operation);
 
-        if(pagesAndMarkup == null) {
+        if (pagesAndMarkup == null) {
             log.error("pagesAndMarkup == null");
             return null;
         }
@@ -842,33 +939,39 @@ public class TaskProcessorImpl implements TaskProcessor {
         String[] pages = pagesAndMarkup.keySet().iterator().next();
         InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
 
-        return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
+        return messageUtils.editMessageGenerator(update, pages[pageIndex], markup);
     }
 
     @Override
     public SendMessage processGetAllTasks(Update update, String operation) {
         int pageIndex = 0;
-
+        String language = userUtils.getUserByUpdate(update).getLanguage();
         Map<String[], InlineKeyboardMarkup> pagesAndMarkup = getTasksTextAndMarkup(update, pageIndex, operation);
 
         // handle case if user doesn't have any tasks yet
         if (pagesAndMarkup == null) {
-            return MessageUtils.sendMessageGenerator(
+            return messageUtils.sendMessageGenerator(
                     update,
-                    "You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons"
+                    languageManager.getMessage(
+                            String.format("error.no-tasks.%s", language),
+                            language)
             );
         }
 
         String[] pages = pagesAndMarkup.keySet().iterator().next();
         InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
 
-        return MessageUtils.sendMessageGenerator(update, pages[pageIndex], markup);
+        return messageUtils.sendMessageGenerator(update, pages[pageIndex], markup);
     }
 
     @Override
     public SendMessage processGetAllTags(Update update) {
-        return MessageUtils.sendMessageGenerator(update,
-                "Your tags: ",
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
+        return messageUtils.sendMessageGenerator(update,
+                languageManager.getMessage(
+                        String.format("task.other.tags.%s", language),
+                        language),
                 markupUtils.getTagsInlineMarkup(update, 0));
     }
 
@@ -883,18 +986,21 @@ public class TaskProcessorImpl implements TaskProcessor {
             pageIndex--;
         }
 
-        log.trace("pageIndex = "+pageIndex);
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
 
-        return MessageUtils.editMessageGenerator(update,
-                "Your tags: ",
+        return messageUtils.editMessageGenerator(update,
+                languageManager.getMessage(
+                        String.format("task.other.tags.%s", language),
+                        language),
                 markupUtils.getTagsInlineMarkup(update, pageIndex));
     }
 
     // CreateTask methods
 
-    private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task) {
+    private SendMessage completedTaskAnswer(SendMessage answerMessage, Task task, User user) {
         answerMessage.setReplyMarkup(null);
-        answerMessage.setText(taskUtils.responseForEachState(task));
+        answerMessage.setText(taskUtils.responseForEachState(task, user));
 
         return answerMessage;
     }
@@ -902,6 +1008,7 @@ public class TaskProcessorImpl implements TaskProcessor {
     // GetAllTasks methods
 
     private EditMessageText returnToAllTasks(Update update, String operation) {
+        String language = userUtils.getUserByUpdate(update).getLanguage();
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
         int pageIndex = Integer.parseInt(callbackData[2]);
@@ -910,18 +1017,25 @@ public class TaskProcessorImpl implements TaskProcessor {
 
         // handle case if user doesn't have any tasks yet (user can remove the task, so he could still have 0 tasks)
         if (pagesAndMarkup == null) {
-            String text = "You don't have any tasks yet.\n\nYou can create tasks using appropriate buttons";
-            return MessageUtils.editMessageGenerator(update, text);
+            String text = languageManager.getMessage(
+                    String.format("error.no-tasks.%s", language),
+                    language);
+            return messageUtils.editMessageGenerator(update, text);
         }
 
         String[] pages = pagesAndMarkup.keySet().iterator().next();
         InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
 
-        return MessageUtils.editMessageGenerator(update, pages[pageIndex], markup);
+        if (pages.length == pageIndex) {
+            pageIndex = pages.length - 1;
+        }
+
+        return messageUtils.editMessageGenerator(update, pages[pageIndex], markup);
     }
 
     private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex, String operation) {
-        User user = userUtils.getUserByTag(update);
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
         String[] pages;
 
         int pageTaskIndex = 0;
@@ -962,7 +1076,10 @@ public class TaskProcessorImpl implements TaskProcessor {
                 pages[pageNumber] = "";
 
                 if (pageNumber == 0 && hasUncompletedTasks) {
-                    pages[pageNumber] = pages[pageNumber].concat("❌ *Uncompleted:*\n\n");
+                    pages[pageNumber] = pages[pageNumber].concat(
+                                    languageManager.getMessage(String.format("task.other.uncompleted.%s", language),
+                                            language))
+                            .concat("\n\n");
                 }
             }
 
@@ -970,7 +1087,10 @@ public class TaskProcessorImpl implements TaskProcessor {
             if (hasCompletedTasks && noCompletedFlowYet && tasks.get(i).getStatus().equals("Completed")) {
                 noCompletedFlowYet = false;
 
-                pages[pageNumber] = pages[pageNumber].concat("*✅ Completed:*\n\n");
+                pages[pageNumber] = pages[pageNumber].concat(
+                                languageManager.getMessage(String.format("task.other.completed.%s", language),
+                                        language))
+                        .concat("\n\n");
             }
             // get current task
             Task task = tasks.get(i);

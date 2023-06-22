@@ -519,7 +519,7 @@ public class MarkupUtils {
 
         InlineKeyboardButton englishButton = new InlineKeyboardButton("English");
         InlineKeyboardButton russianButton = new InlineKeyboardButton("Русский");
-        InlineKeyboardButton ukrainianButton = new InlineKeyboardButton("Український");
+        InlineKeyboardButton ukrainianButton = new InlineKeyboardButton("Українська");
         englishButton.setCallbackData("SETTINGS/LANGUAGE/SET/ENGLISH");
         russianButton.setCallbackData("SETTINGS/LANGUAGE/SET/RUSSIAN");
         ukrainianButton.setCallbackData("SETTINGS/LANGUAGE/SET/UKRAINIAN");

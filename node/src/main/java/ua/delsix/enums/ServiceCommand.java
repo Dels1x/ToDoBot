@@ -43,7 +43,7 @@ public enum ServiceCommand {
             case "finish", "закончить", "закінчити" -> FINISH;
             case "tasks", "задачи", "завдання" -> TASKS;
             case "tags", "тэги", "теги" -> TAGS;
-            case "create task", "создать задачу","создати завдання" -> CREATE_TASK;
+            case "create task", "создать задачу","створити завдання" -> CREATE_TASK;
             case "completed tasks", "выполненные задачи", "виконані завдання" -> COMPLETED_TASKS;
             case "uncompleted tasks", "незавершённые задачи", "незавершені завдання" -> UNCOMPLETED_TASKS;
             case "today tasks", "задачи на сегодня", "завдання на сьогодні" -> TODAY_TASKS;

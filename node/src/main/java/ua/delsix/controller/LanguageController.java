@@ -1,4 +1,4 @@
-package ua.delsix.language;
+package ua.delsix.controller;
 
 import org.springframework.context.MessageSource;
 
@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class LanguageManager {
+public class LanguageController {
     private final MessageSource messageSource;
 
-    public LanguageManager(MessageSource messageSource) {
+    public LanguageController(MessageSource messageSource) {
         this.messageSource = messageSource;
     }
 

@@ -18,8 +18,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.version>17</maven.compiler.version>
-    <maven.target.version>17</maven.target.version>
+    <maven.compiler.version>15</maven.compiler.version>
+    <maven.target.version>15</maven.target.version>
     <telegrambots.version>6.5.0</telegrambots.version>
   </properties>
 
@@ -76,42 +76,5 @@
       <artifactId>spring-boot-starter-amqp</artifactId>
       <version>2.7.11</version>
     </dependency>
-
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <configuration>
-          <mainClass>ua.delsix.NodeApplication</mainClass>
-          <layout>JAR</layout>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <!-- Build an executable JAR -->
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.1.0</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-              <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>ua.delsix.NodeApplication</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

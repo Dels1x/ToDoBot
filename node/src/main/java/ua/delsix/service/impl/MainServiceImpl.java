@@ -4,7 +4,6 @@ import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
@@ -15,6 +14,7 @@ import ua.delsix.service.ProducerService;
 import ua.delsix.service.TaskService;
 import ua.delsix.enums.ServiceCommand;
 import ua.delsix.service.SettingsService;
+import ua.delsix.utils.CallbackQueryUtils;
 import ua.delsix.utils.MessageUtils;
 import ua.delsix.utils.UserUtils;
 
@@ -46,17 +46,15 @@ public class MainServiceImpl implements MainService {
 
     @Override
     public void processUpdate(Update update) {
-        SendMessage answerMessage = null;
         if (update.hasMessage()) {
-            answerMessage = processMessage(update);
+            SendMessage answerMessage = processMessage(update);
+            producerService.produceAnswer(answerMessage, update);
         } else if (update.hasCallbackQuery()) {
             processCallbackQuery(update);
-            return;
         } else {
             log.error("Update has neither message nor callback query");
+            throw new IllegalStateException("Update has neither message nor callback query");
         }
-
-        producerService.produceAnswer(answerMessage, update);
     }
 
     private SendMessage processMessage(Update update) {
@@ -67,51 +65,99 @@ public class MainServiceImpl implements MainService {
     }
 
     private void processCallbackQuery(Update update) {
-        CallbackQuery callbackQuery = update.getCallbackQuery();
-        String[] callbackData = callbackQuery.getData().split("/");
-        EditMessageText answer = messageUtils.editMessageGenerator(update, "Unknown error. Please contact developer using his telegram (@dels1x).");
+        String[] callbackData = CallbackQueryUtils.getCallbackData(update);
         String operation = callbackData[0];
+        EditMessageText answer = messageUtils.editMessageGenerator(update, "Unknown error");
 
-        log.trace("CallbackData: "+ Arrays.toString(callbackData));
+        log.trace("CallbackData: " + Arrays.toString(callbackData));
 
         // get answer based on callbackQuery
         if (operation.startsWith("GET")) {
-            if (operation.equals("GET_TAGS")) {
-                answer = taskService.processGetAllTagsUpdate(update, callbackData[1]);
-            } else {
-                switch (callbackData[1]) {
-                    case "NEXT", "PREV" -> answer = taskService.processGetAllTasksUpdate(update, operation, callbackData[1]);
-                    case "TASK" -> answer = taskService.processGetTaskInDetail(update, operation);
-                }
-            }
-        } else if (operation.startsWith("DELETE_ALL_COMPLETED")) {
-            if (callbackData[1].equals("CONFIRM")) {
-                answer = taskService.processDeleteAllCompletedTasks(update);
-            }
-        } else if (operation.startsWith("DELETE_ALL")) {
-            if (callbackData[1].equals("CONFIRM")) {
-                answer = taskService.processDeleteAllTasks(update);
-            }
+            answer = processGetOperation(update);
+        } else if (operation.startsWith("DELETE")) {
+            answer = processDeleteOperation(update);
         } else if (operation.startsWith("SETTINGS")) {
-            if (callbackData[1].equals("LANGUAGE")) {
-                if (callbackData.length == 2) {
-                    answer = settingsService.processLanguage(update);
-                } else {
-                    if (callbackData[2].equals("SET")) {
-                        settingsService.setLanguage(update);
-                        return;
-                    }
-                }
-            }
+            answer = processSettingsOperation(update);
         }
 
-        if(answer == null) {
+        if (answer == null) {
             log.error("answer is null");
-            return;
+            answer = messageUtils.editMessageGenerator(update, "Unknown error");
         }
 
         producerService.produceAnswer(answer);
     }
+
+    private EditMessageText processSettingsOperation(Update update) {
+        String[] callbackData = CallbackQueryUtils.getCallbackData(update);
+        String operation = callbackData[0];
+
+        if (callbackData[1].equals("LANGUAGE")) {
+            if (callbackData.length == 2) {
+                return settingsService.processLanguage(update);
+            } else {
+                if (callbackData[2].equals("SET")) {
+                    settingsService.setLanguage(update);
+                }
+            }
+        }
+
+        log.error("Unexpected value: " + operation);
+        return null;
+    }
+
+    private EditMessageText processDeleteOperation(Update update) {
+        String[] callbackData = CallbackQueryUtils.getCallbackData(update);
+        String operation = callbackData[0];
+
+        if (operation.startsWith("DELETE_ALL_COMPLETED")) {
+            if (callbackData[1].equals("CONFIRM")) {
+                return taskService.processDeleteAllCompletedTasks(update);
+            }
+        } else if (operation.startsWith("DELETE_ALL")) {
+            if (callbackData[1].equals("CONFIRM")) {
+                return taskService.processDeleteAllTasks(update);
+            }
+        }
+
+        log.error("Unexpected value: " + operation);
+        return null;
+    }
+
+    private EditMessageText processGetOperation(Update update) {
+        String[] callbackData = CallbackQueryUtils.getCallbackData(update);
+        String operation = callbackData[0];
+
+        if (operation.equals("GET_TAGS")) {
+            return processGetTagsOperation(update);
+        } else if (operation.equals("GET_TASKS")) {
+            return processGetTasksOperation(update);
+        } else {
+            log.error("Unexpected value: " + operation);
+            return null;
+        }
+    }
+
+    private EditMessageText processGetTasksOperation(Update update) {
+        String[] callbackData = CallbackQueryUtils.getCallbackData(update);
+        String operation = callbackData[0];
+        String subOperation = callbackData[1];
+
+        return switch (subOperation) {
+            case "NEXT", "PREV" -> taskService.processGetAllTasksUpdate(update, operation, subOperation);
+            case "TASK" -> taskService.processGetTaskInDetail(update, operation);
+            default -> {
+                log.error("Unexpected value: " + subOperation);
+                yield null;
+            }
+        };
+    }
+
+    private EditMessageText processGetTagsOperation(Update update) {
+        String subOperation =  CallbackQueryUtils.getCallbackData(update)[1];
+        return taskService.processGetAllTagsUpdate(update, subOperation);
+    }
+
 
     private SendMessage processUserMessage(Update update, ServiceCommand userCommand) {
         String answerText = "";
@@ -148,17 +194,18 @@ public class MainServiceImpl implements MainService {
             case COMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_COMPLETED_TASKS");
             case UNCOMPLETED_TASKS -> answerMessage = taskService.processGetAllTasks(update, "GET_UNCOMPLETED_TASKS");
             case TAGS -> answerMessage = taskService.processGetAllTags(update);
-            case DELETE_COMPLETED_TASKS -> answerMessage = taskService.processDeleteAllCompletedTasksConfirmation(update);
+            case DELETE_COMPLETED_TASKS ->
+                    answerMessage = taskService.processDeleteAllCompletedTasksConfirmation(update);
             case DELETE_ALL_TASKS -> answerMessage = taskService.processDeleteAllTasksConfirmation(update);
             default -> {
                 answerMessage.setText(answerText);
                 // get task to determine what user tries to achieve by user's last task's state
                 Optional<Task> lastTask = taskRepository.findTopByUserIdOrderByIdDesc(user.getId());
-                if(lastTask.isPresent()) {
+                if (lastTask.isPresent()) {
                     String taskState = lastTask.get().getState();
 
                     // process further creation/editing of a task in TaskService
-                    if(taskState.startsWith("CREAT")) {
+                    if (taskState.startsWith("CREAT")) {
                         answerMessage = taskService.processCreatingTask(update);
                     } else {
                         List<Task> tasks = taskRepository.findAll(user.getId());
@@ -167,11 +214,11 @@ public class MainServiceImpl implements MainService {
                                 .filter(task -> task.getState().startsWith("EDIT"))
                                 .findFirst();
 
-                        if(editTaskOptional.isPresent()) {
+                        if (editTaskOptional.isPresent()) {
                             answerMessage = taskService.editTask(update, editTaskOptional.get());
                         } else {
                             answerText = languageController.getMessage(String.format(
-                                    "unknown-command.%s", language),
+                                            "unknown-command.%s", language),
                                     language);
                             answerMessage.setText(answerText);
                         }

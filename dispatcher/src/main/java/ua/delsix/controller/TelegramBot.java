@@ -4,8 +4,7 @@ import lombok.extern.log4j.Log4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -41,33 +40,24 @@ public class TelegramBot extends TelegramLongPollingBot {
         updateController.processUpdate(update);
     }
 
-    public void sendMessage(SendMessage message) {
-        if(message == null) {
-            log.warn("Attempted to send a null message");
+    protected void executeMessage(BotApiMethod<?> message) {
+        if (!isMessageValid(message)) {
             return;
         }
-        log.trace("SendMessage: "+message);
 
         try {
             execute(message);
             log.debug("Successfully sent the message back");
         } catch (TelegramApiException e) {
-            log.error("TelegramApiException thrown when attempted to send a message: "+e.getMessage());
+            log.error("TelegramApiException thrown when attempted to edit a message: " + e.getMessage());
         }
     }
 
-    public void editMessage(EditMessageText message) {
-        if(message == null) {
-            log.warn("Attempted to edit a message to null");
-            return;
+    private boolean isMessageValid(BotApiMethod<?> message) {
+        if (message == null) {
+            log.warn("Attempted to perform an operation with a null message");
+            return false;
         }
-        log.trace("EditMessage: "+message);
-
-        try {
-            execute(message);
-            log.debug("Successfully sent the message back");
-        } catch (TelegramApiException e) {
-            log.error("TelegramApiException thrown when attempted to edit a message: "+e.getMessage());
-        }
+        return true;
     }
 }

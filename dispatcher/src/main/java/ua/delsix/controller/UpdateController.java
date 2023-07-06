@@ -1,8 +1,7 @@
 package ua.delsix.controller;
 
 import org.springframework.stereotype.Controller;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.RabbitQueue;
 import ua.delsix.service.UpdateProducer;
@@ -21,17 +20,12 @@ public class UpdateController {
     }
 
     public void processUpdate(Update update) {
-        System.out.println(update.getCallbackQuery());
         if(update.hasMessage() || update.hasCallbackQuery()) {
             updateProducer.produce(RabbitQueue.MESSAGE_UPDATE, update);
         }
     }
 
-    public void setView(SendMessage sendMessage) {
-        telegramBot.sendMessage(sendMessage);
-    }
-
-    public void setView(EditMessageText editMessage) {
-        telegramBot.editMessage(editMessage);
+    public void setView(BotApiMethod<?> sendMessage) {
+        telegramBot.executeMessage(sendMessage);
     }
 }

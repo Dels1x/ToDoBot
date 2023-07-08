@@ -130,11 +130,8 @@ public class MainServiceImpl implements MainService {
 
         if (operation.equals("GET_TAGS")) {
             return processGetTagsOperation(update);
-        } else if (operation.equals("GET_TASKS") || operation.startsWith("GET_BY_TAG")) {
-            return processGetTasksOperation(update);
         } else {
-            log.error("Unexpected value: " + operation);
-            return messageUtils.generateErrorEditMessage(update);
+            return processGetTasksOperation(update);
         }
     }
 

@@ -9,7 +9,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
-import ua.delsix.controller.LanguageController;
+import ua.delsix.manager.LanguageManager;
 import ua.delsix.repository.TaskRepository;
 
 import java.time.LocalDate;
@@ -20,25 +20,25 @@ import java.util.*;
 public class MarkupUtils {
     private final UserUtils userUtils;
     private final TaskRepository taskRepository;
-    private final LanguageController languageController;
+    private final LanguageManager languageManager;
 
-    public MarkupUtils(UserUtils userUtils, TaskRepository taskRepository, LanguageController languageController) {
+    public MarkupUtils(UserUtils userUtils, TaskRepository taskRepository, LanguageManager languageManager) {
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
-        this.languageController = languageController;
+        this.languageManager = languageManager;
     }
 
     private KeyboardRow getCancelSkipFinishKeyboard(Update update) {
         String language = userUtils.getUserByUpdate(update).getLanguage();
 
         KeyboardRow row = new KeyboardRow();
-        row.add(languageController.getMessage(
+        row.add(languageManager.getMessage(
                 String.format("keyboard.create.cancel.%s", language),
                 language));
-        row.add(languageController.getMessage(
+        row.add(languageManager.getMessage(
                 String.format("keyboard.create.skip.%s", language),
                 language));
-        row.add(languageController.getMessage(
+        row.add(languageManager.getMessage(
                 String.format("keyboard.create.finish.%s", language),
                 language));
 
@@ -62,10 +62,10 @@ public class MarkupUtils {
         KeyboardRow row2 = new KeyboardRow();
         KeyboardRow row3 = new KeyboardRow();
 
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.date.today.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.date.tomorrow.%s", language),
                 language));
         row3.add(String.valueOf(today.plusDays(2)));
@@ -87,10 +87,10 @@ public class MarkupUtils {
         KeyboardRow row1 = new KeyboardRow();
         KeyboardRow row2 = new KeyboardRow();
 
-        row1.add(languageController.getMessage(
+        row1.add(languageManager.getMessage(
                 String.format("keyboard.date.today.%s", language),
                 language));
-        row1.add(languageController.getMessage(
+        row1.add(languageManager.getMessage(
                 String.format("keyboard.date.tomorrow.%s", language),
                 language));
         row2.add(String.valueOf(today.plusDays(2)));
@@ -255,37 +255,37 @@ public class MarkupUtils {
 
         // setting up buttons
         InlineKeyboardButton nameButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.edit.name.%s", language),
                         language)
         );
         InlineKeyboardButton descButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.edit.description.%s", language),
                         language)
         );
         InlineKeyboardButton dateButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.edit.date.%s", language),
                         language)
         );
         InlineKeyboardButton priorityButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.edit.priority.%s", language),
                         language)
         );
         InlineKeyboardButton difficultyButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.edit.difficulty.%s", language),
                         language)
         );
         InlineKeyboardButton tagButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.edit.tag.%s", language),
                         language)
         );
         InlineKeyboardButton backButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.edit.back.%s", language),
                         language)
         );
@@ -322,22 +322,22 @@ public class MarkupUtils {
         KeyboardRow row1 = new KeyboardRow();
         KeyboardRow row2 = new KeyboardRow();
 
-        row1.add(languageController.getMessage(
+        row1.add(languageManager.getMessage(
                 String.format("keyboard.default.tasks.%s", language),
                 language));
-        row1.add(languageController.getMessage(
+        row1.add(languageManager.getMessage(
                 String.format("keyboard.default.tags.%s", language),
                 language));
-        row1.add(languageController.getMessage(
+        row1.add(languageManager.getMessage(
                 String.format("keyboard.default.create.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.default.uncompleted.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.default.completed.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.default.today.%s", language),
                 language));
         keyboard.add(row1);
@@ -352,22 +352,22 @@ public class MarkupUtils {
         KeyboardRow row2 = new KeyboardRow();
         KeyboardRow row3 = new KeyboardRow();
 
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.priority.not-important.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.priority.low.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.priority.medium.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.priority.high.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.priority.very-high.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.priority.extremely-high.%s", language),
                 language));
 
@@ -384,22 +384,22 @@ public class MarkupUtils {
         KeyboardRow row2 = new KeyboardRow();
         KeyboardRow row3 = new KeyboardRow();
 
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.priority.not-important.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.priority.low.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.priority.medium.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.priority.high.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.priority.very-high.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.priority.extremely-high.%s", language),
                 language));
 
@@ -418,28 +418,28 @@ public class MarkupUtils {
         KeyboardRow row4 = new KeyboardRow();
         KeyboardRow row5 = new KeyboardRow();
 
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.no-difficulty.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.very-easy.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.easy.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.moderate.%s", language),
                 language));
-        row4.add(languageController.getMessage(
+        row4.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.challenging.%s", language),
                 language));
-        row4.add(languageController.getMessage(
+        row4.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.difficult.%s", language),
                 language));
-        row5.add(languageController.getMessage(
+        row5.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.very-difficult.%s", language),
                 language));
-        row5.add(languageController.getMessage(
+        row5.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.extremely-difficult.%s", language),
                 language));
 
@@ -460,28 +460,28 @@ public class MarkupUtils {
         KeyboardRow row4 = new KeyboardRow();
         KeyboardRow row5 = new KeyboardRow();
 
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.no-difficulty.%s", language),
                 language));
-        row2.add(languageController.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.very-easy.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.easy.%s", language),
                 language));
-        row3.add(languageController.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.moderate.%s", language),
                 language));
-        row4.add(languageController.getMessage(
+        row4.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.challenging.%s", language),
                 language));
-        row4.add(languageController.getMessage(
+        row4.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.difficult.%s", language),
                 language));
-        row5.add(languageController.getMessage(
+        row5.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.very-difficult.%s", language),
                 language));
-        row5.add(languageController.getMessage(
+        row5.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.extremely-difficult.%s", language),
                 language));
 
@@ -499,7 +499,7 @@ public class MarkupUtils {
         List<InlineKeyboardButton> buttonsRow = new ArrayList<>();
 
         InlineKeyboardButton languageButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.settings.language.%s", language),
                         language)
         );

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import ua.delsix.controller.LanguageController;
+import ua.delsix.manager.LanguageManager;
 import ua.delsix.service.ProducerService;
 import ua.delsix.service.SettingsService;
 import ua.delsix.utils.MarkupUtils;
@@ -17,14 +17,14 @@ public class SettingsServiceImpl implements SettingsService {
     private final UserUtils userUtils;
     private final MarkupUtils markupUtils;
     private final MessageUtils messageUtils;
-    private final LanguageController languageController;
+    private final LanguageManager languageManager;
     private final ProducerService producerService;
 
-    public SettingsServiceImpl(UserUtils userUtils, MarkupUtils markupUtils, MessageUtils messageUtils, LanguageController languageController, ProducerService producerService) {
+    public SettingsServiceImpl(UserUtils userUtils, MarkupUtils markupUtils, MessageUtils messageUtils, LanguageManager languageManager, ProducerService producerService) {
         this.userUtils = userUtils;
         this.markupUtils = markupUtils;
         this.messageUtils = messageUtils;
-        this.languageController = languageController;
+        this.languageManager = languageManager;
         this.producerService = producerService;
     }
 
@@ -34,7 +34,7 @@ public class SettingsServiceImpl implements SettingsService {
 
         return messageUtils.generateSendMessage(
                 update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("settings.name.%s", language),
                         language),
                 markupUtils.getSettingsMainMarkup(update)
@@ -47,7 +47,7 @@ public class SettingsServiceImpl implements SettingsService {
 
         return messageUtils.generateEditMessage(
                 update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.settings.language.%s", language),
                         language),
                 markupUtils.getSettingsLanguageMarkup()
@@ -70,7 +70,7 @@ public class SettingsServiceImpl implements SettingsService {
         producerService.produceAnswer(
                 messageUtils.generateSendMessage(
                 update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.settings.set.%s", languageCode),
                         languageCode)),
                 update);

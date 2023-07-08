@@ -110,15 +110,15 @@ create:
     en: |
       You can set a *due date* for your task. Please enter a *date* using the format 'yyyy-MM-dd' (e.g., '2023-04-30').
       
-      Alternatively, you can use *'today'* or *'tomorrow'* to set the *due date* accordingly.
+      Alternatively, you can type "in X days" (where X is the number of days from now) or you can use *'today'* or *'tomorrow'* to set the *due date* accordingly.
     ru: |
       Вы можете указать *срок выполнения* для вашей задачи. Пожалуйста, введите *дату* в формате 'гггг-ММ-дд' (например, '2023-04-30').
       
-      Также вы можете использовать *'сегодня'* или *'завтра'* для установки соответствующей *даты*.
+      Альтернативно, вы можете написать "Через Х дней" (где Х это число дней от сегодняшнего дня) или вы можете использовать *'сегодня'* или *'завтра'* для установки соответствующей *даты*.
     ua: |
       Ви можете встановити *термін виконання* для вашого завдання. Будь ласка, введіть *дату* у форматі 'рррр-ММ-дд' (наприклад, '2023-04-30').
-       
-      Також ви можете використовувати *'сьогодні'* або *'завтра'*, щоб встановити відповідну *дату*.
+      
+      Альтернативно, ви можете написати "Через Х днів" (де Х - це число днів від сьогоднішнього дня) або ви можете використати *'today'* або *'tomorrow'* для встановлення відповідної *дати*.
   priority:
     en: |
       You can set a *priority* for your task. Please choose a number between 1 and 6 to indicate the *priority* level or use buttons.
@@ -406,9 +406,9 @@ error:
         ua: Будь ласка, надішліть текст для опису вашого завдання.
     date:
       no-text:
-        en: 'Please enter the due date of task in the format "yyyy-MM-dd", e.g. "2023-04-30" or use button.'
-        ru: 'Пожалуйста, введите дату выполнения задания в формате "yyyy-MM-dd", например, "2023-04-30" или воспользуйтесь кнопками.'
-        ua: 'Будь ласка, введіть дату виконання завдання у форматі "рррр-ММ-дд", наприклад, "2023-04-30" або скористайтеся кнопками.'
+        en: 'Please enter the due date of the task in the format "yyyy-MM-dd", e.g. "2023-04-30" or "in X days", or use buttons.'
+        ru: 'Пожалуйста, введите дату выполнения задания в формате "yyyy-MM-dd", например, "2023-04-30" или "Через Х дней", или воспользуйтесь кнопками.'
+        ua: 'Будь ласка, введіть дату виконання завдання у форматі "рррр-ММ-дд", наприклад, "2023-04-30" или "Через Х днів, або скористайтеся кнопками.'
     priority:
       no-text:
         en: Please enter a number to indicate the priority of your task or use buttons.
@@ -621,3 +621,8 @@ bot:
     en: Apologies, it appears that there is an issue with the bot at the moment.\n\nPlease try again later.
     ru: Извините, в данный момент возникла проблема с ботом.\n\nПожалуйста, попробуйте позже.
     ua: Вибачте, на даний момент виникла проблема з ботом.\n\nБудь ласка, спробуйте пізніше.
+date:
+  in-days:
+    en: in
+    ru: через
+    ua: через

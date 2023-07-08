@@ -1,4 +1,4 @@
-package ua.delsix.controller;
+package ua.delsix.manager;
 
 import org.springframework.context.MessageSource;
 
@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class LanguageController {
+public class LanguageManager {
     private final MessageSource messageSource;
 
-    public LanguageController(MessageSource messageSource) {
+    public LanguageManager(MessageSource messageSource) {
         this.messageSource = messageSource;
     }
 
@@ -23,8 +23,7 @@ public class LanguageController {
         values.add(getMessage(key.concat(".en"), languageCode).toLowerCase());
         values.add(getMessage(key.concat(".ru"), languageCode).toLowerCase());
         values.add(getMessage(key.concat(".ua"), languageCode).toLowerCase());
-        value = value.toLowerCase();
 
-        return values.contains(value);
+        return values.stream().anyMatch(v -> v.equalsIgnoreCase(value));
     }
 }

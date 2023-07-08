@@ -3,7 +3,7 @@ package ua.delsix.utils;
 import org.springframework.stereotype.Component;
 import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
-import ua.delsix.controller.LanguageController;
+import ua.delsix.manager.LanguageManager;
 
 import java.util.Arrays;
 import java.util.List;
@@ -11,11 +11,11 @@ import java.util.List;
 @Component
 public class TaskUtils {
 
-    private final LanguageController languageController;
+    private final LanguageManager languageManager;
     public static final List<String> states = Arrays.asList("CREATING_NAME", "CREATING_DESCRIPTION", "CREATING_DATE", "CREATING_PRIORITY", "CREATING_DIFFICULTY", "CREATING_TAG", "COMPLETED");
 
-    public TaskUtils(LanguageController languageController) {
-        this.languageController = languageController;
+    public TaskUtils(LanguageManager languageManager) {
+        this.languageManager = languageManager;
     }
 
     public String getDifficultyDescription(Integer diff) {
@@ -75,7 +75,7 @@ public class TaskUtils {
     public String taskToStringInDetail(Task task, User user) {
         String language = user.getLanguage();
         return String.format(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("task.detail.main.%s", user.getLanguage()),
                         language),
                 task.getName() == null ? "❌" : task.getName(),
@@ -88,7 +88,7 @@ public class TaskUtils {
                 task.getStatus() == null ? "❌" :
                         task.getStatus().equals("Completed") ? "✅" : "❌",
                 task.getCompletionDate() == null ? "" :
-                       languageController.getMessage(
+                       languageManager.getMessage(
                                String.format("task.detail.completed-at.%s", language),
                                        language)
                                .concat(task.getCompletionDate().toString()));
@@ -107,7 +107,7 @@ public class TaskUtils {
             case "CREATING_DIFFICULTY" -> step = "tag";
             case "CREATING_TAG", "COMPLETED" -> step = "completed";
             default -> {
-                return languageController.getMessage(
+                return languageManager.getMessage(
                         String.format("bot.error.%s", language),
                         language);
             }
@@ -115,12 +115,12 @@ public class TaskUtils {
 
         if(step.equals("completed")) {
             return String.format(
-                    languageController.getMessage(
+                    languageManager.getMessage(
                     String.format("create.%s.%s", step, language),
                             language),
                     taskToStringInDetail(task, user));
         } else {
-            return languageController.getMessage(
+            return languageManager.getMessage(
                     String.format("create.%s.%s", step, language),
                     language);
         }

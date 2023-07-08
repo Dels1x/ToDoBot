@@ -7,7 +7,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
-import ua.delsix.controller.LanguageController;
+import ua.delsix.manager.LanguageManager;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.service.MainService;
 import ua.delsix.service.ProducerService;
@@ -25,7 +25,7 @@ import java.util.Optional;
 @Service
 @Log4j
 public class MainServiceImpl implements MainService {
-    private final LanguageController languageController;
+    private final LanguageManager languageManager;
 
     private final ProducerService producerService;
     private final SettingsService settingsService;
@@ -34,8 +34,8 @@ public class MainServiceImpl implements MainService {
     private final MessageUtils messageUtils;
     private final UserUtils userUtils;
 
-    public MainServiceImpl(LanguageController languageController, ProducerService producerService, SettingsService settingsService, TaskService taskService, TaskRepository taskRepository, MessageUtils messageUtils, UserUtils userUtils) {
-        this.languageController = languageController;
+    public MainServiceImpl(LanguageManager languageManager, ProducerService producerService, SettingsService settingsService, TaskService taskService, TaskRepository taskRepository, MessageUtils messageUtils, UserUtils userUtils) {
+        this.languageManager = languageManager;
         this.producerService = producerService;
         this.settingsService = settingsService;
         this.taskService = taskService;
@@ -174,14 +174,14 @@ public class MainServiceImpl implements MainService {
         log.debug("User command: " + userCommand);
         switch (userCommand) {
             case HELP -> {
-                answerText = languageController.getMessage(
+                answerText = languageManager.getMessage(
                         String.format("help.%s", language),
                         language);
 
                 answerMessage.setText(answerText);
             }
             case START -> {
-                answerText = languageController.getMessage(
+                answerText = languageManager.getMessage(
                         String.format("start.%s", language),
                         language);
 
@@ -217,14 +217,14 @@ public class MainServiceImpl implements MainService {
                         if (editTaskOptional.isPresent()) {
                             answerMessage = taskService.editTask(update, editTaskOptional.get());
                         } else {
-                            answerText = languageController.getMessage(String.format(
+                            answerText = languageManager.getMessage(String.format(
                                             "unknown-command.%s", language),
                                     language);
                             answerMessage.setText(answerText);
                         }
                     }
                 } else {
-                    answerText = languageController.getMessage(
+                    answerText = languageManager.getMessage(
                             String.format("unknown-command.%s", language),
                             language);
                     answerMessage.setText(answerText);

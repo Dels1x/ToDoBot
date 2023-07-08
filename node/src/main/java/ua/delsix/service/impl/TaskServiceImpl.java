@@ -12,7 +12,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ua.delsix.entity.Task;
 import ua.delsix.entity.User;
-import ua.delsix.controller.LanguageController;
+import ua.delsix.manager.LanguageManager;
 import ua.delsix.repository.TaskRepository;
 import ua.delsix.repository.UserRepository;
 import ua.delsix.service.ProducerService;
@@ -37,18 +37,18 @@ public class TaskServiceImpl implements TaskService {
     private final TaskUtils taskUtils;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
-    private final LanguageController languageController;
+    private final LanguageManager languageManager;
     private final ProducerService producerService;
     private static final int TASK_PER_PAGE = 4;
 
-    public TaskServiceImpl(MessageUtils messageUtils, MarkupUtils markupUtils, UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, LanguageController languageController, ProducerService producerService) {
+    public TaskServiceImpl(MessageUtils messageUtils, MarkupUtils markupUtils, UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, LanguageManager languageManager, ProducerService producerService) {
         this.messageUtils = messageUtils;
         this.markupUtils = markupUtils;
         this.userUtils = userUtils;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.taskUtils = taskUtils;
-        this.languageController = languageController;
+        this.languageManager = languageManager;
         this.producerService = producerService;
     }
 
@@ -74,7 +74,7 @@ public class TaskServiceImpl implements TaskService {
         // sending answerMessage to MainService
         return messageUtils.generateSendMessage(
                 update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("create.start.%s", languageCode),
                         languageCode),
                 markupUtils.getCancelSkipFinishMarkup(update));
@@ -91,7 +91,7 @@ public class TaskServiceImpl implements TaskService {
         if (taskOptional.isEmpty()) {
             log.error("User does not have any tasks");
             answerMessage.setText(
-                    languageController.getMessage(
+                    languageManager.getMessage(
                             String.format("bot.error.%s", languageCode),
                             languageCode));
             return answerMessage;
@@ -112,7 +112,7 @@ public class TaskServiceImpl implements TaskService {
             // Delete task from tasks table
             taskRepository.deleteById(task.getId());
             answerMessage.setText(
-                    languageController.getMessage(
+                    languageManager.getMessage(
                             String.format("create.cancel.%s", languageCode),
                             languageCode));
             answerMessage.setReplyMarkup(null);
@@ -230,7 +230,7 @@ public class TaskServiceImpl implements TaskService {
         Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
-            return languageController.getMessage(
+            return languageManager.getMessage(
                     String.format("error.set.name.no-text.%s", language),
                     language);
         }
@@ -246,7 +246,7 @@ public class TaskServiceImpl implements TaskService {
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
 
-            return languageController.getMessage(
+            return languageManager.getMessage(
                     String.format("error.set.description.no-text.%s", language),
                     language);
         }
@@ -259,7 +259,7 @@ public class TaskServiceImpl implements TaskService {
     private String setTaskDate(Update update, Task task) {
         String language = userUtils.getUserByUpdate(update).getLanguage();
         Message userMessage = update.getMessage();
-        String errorMessage = languageController.getMessage(
+        String errorMessage = languageManager.getMessage(
                 String.format("error.set.date.no-text.%s", language),
                 language);
         // checking if user's message has text, since he can send a picture of document
@@ -270,11 +270,15 @@ public class TaskServiceImpl implements TaskService {
 
         // checking if user's message is a date. if true - parsing to LocalDate, if false - returning a corresponding message back to user
         try {
-            //TODO add ability to choose date by typing "in X days"
-            if (languageController.isInSection(userMessage.getText(), "keyboard.date.today", language)) {
+            if (languageManager.isInSection(userMessage.getText(), "keyboard.date.today", language)) {
                 date = LocalDate.now();
-            } else if (languageController.isInSection(userMessage.getText(), "keyboard.date.tomorrow", language)) {
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.date.tomorrow", language)) {
                 date = LocalDate.now().plusDays(1);
+            } else if (languageManager.isInSection(
+                    userMessage.getText().split(" ")[0],
+                    "date.in-days",
+                    language)) {
+                date = translateInDaysToLocalDate(userMessage.getText());
             } else {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 date = LocalDate.parse(userMessage.getText(), formatter);
@@ -283,9 +287,22 @@ public class TaskServiceImpl implements TaskService {
             return errorMessage;
         }
 
+        if (date == null) {
+            return errorMessage;
+        }
+
         task.setTargetDate(date);
         taskRepository.save(task);
         return null;
+    }
+
+    private LocalDate translateInDaysToLocalDate(String message) {
+        try {
+            int plusDays = Integer.parseInt(message.split(" ")[1]);
+            return LocalDate.now().plusDays(plusDays);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String setTaskPriority(Update update, Task task) {
@@ -293,24 +310,24 @@ public class TaskServiceImpl implements TaskService {
         Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
-            return languageController.getMessage(
+            return languageManager.getMessage(
                     String.format("error.set.priority.no-text.%s", language),
                     language);
         }
 
         String text = userMessage.getText().toLowerCase();
 
-        if (languageController.isInSection(userMessage.getText(), "keyboard.priority.not-important", language)) {
+        if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.not-important", language)) {
             task.setPriority(1);
-        } else if (languageController.isInSection(userMessage.getText(), "keyboard.priority.low", language)) {
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.low", language)) {
             task.setPriority(2);
-        } else if (languageController.isInSection(userMessage.getText(), "keyboard.priority.medium", language)) {
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.medium", language)) {
             task.setPriority(3);
-        } else if (languageController.isInSection(userMessage.getText(), "keyboard.priority.high", language)) {
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.high", language)) {
             task.setPriority(4);
-        } else if (languageController.isInSection(userMessage.getText(), "keyboard.priority.very-high", language)) {
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.very-high", language)) {
             task.setPriority(5);
-        } else if (languageController.isInSection(userMessage.getText(), "keyboard.priority.extremely-high", language)) {
+        } else if (languageManager.isInSection(userMessage.getText(), "keyboard.priority.extremely-high", language)) {
             task.setPriority(6);
         } else {
             int number;
@@ -319,7 +336,7 @@ public class TaskServiceImpl implements TaskService {
             try {
                 number = Integer.parseInt(text);
             } catch (NumberFormatException e) {
-                return languageController.getMessage(
+                return languageManager.getMessage(
                         String.format("error.set.priority.no-text.%s", language),
                         language);
             }
@@ -330,7 +347,7 @@ public class TaskServiceImpl implements TaskService {
                 task.setPriority(number);
             } else if (number != 0) {
                 // Inform the user that the priority must be within the allowed range of 1 to 6
-                return languageController.getMessage(
+                return languageManager.getMessage(
                         String.format("error.set.priority.out-of-range.%s", language),
                         language);
             }
@@ -345,7 +362,7 @@ public class TaskServiceImpl implements TaskService {
         Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
-            return languageController.getMessage(
+            return languageManager.getMessage(
                     String.format("error.set.difficulty.no-text.%s", language),
                     language);
         }
@@ -355,24 +372,24 @@ public class TaskServiceImpl implements TaskService {
         try {
             number = Integer.parseInt(userMessage.getText());
         } catch (NumberFormatException e) {
-            if (languageController.isInSection(userMessage.getText(), "keyboard.difficulty.no-difficulty", language)) {
+            if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.no-difficulty", language)) {
                 task.setDifficulty(0);
-            } else if (languageController.isInSection(userMessage.getText(), "keyboard.difficulty.very-easy", language)) {
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.very-easy", language)) {
                 task.setDifficulty(1);
-            } else if (languageController.isInSection(userMessage.getText(), "keyboard.difficulty.easy", language)) {
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.easy", language)) {
                 task.setDifficulty(2);
-            } else if (languageController.isInSection(userMessage.getText(), "keyboard.difficulty.moderate", language)) {
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.moderate", language)) {
                 task.setDifficulty(3);
-            } else if (languageController.isInSection(userMessage.getText(), "keyboard.difficulty.challenging", language)) {
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.challenging", language)) {
                 task.setDifficulty(4);
-            } else if (languageController.isInSection(userMessage.getText(), "keyboard.difficulty.difficult", language)) {
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.difficult", language)) {
                 task.setDifficulty(5);
-            } else if (languageController.isInSection(userMessage.getText(), "keyboard.difficulty.very-difficult", language)) {
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.very-difficult", language)) {
                 task.setDifficulty(6);
-            } else if (languageController.isInSection(userMessage.getText(), "keyboard.difficulty.extremely-difficult", language)) {
+            } else if (languageManager.isInSection(userMessage.getText(), "keyboard.difficulty.extremely-difficult", language)) {
                 task.setDifficulty(7);
             } else {
-                return languageController.getMessage(
+                return languageManager.getMessage(
                         String.format("error.set.difficulty.no-text.%s", language),
                         language);
             }
@@ -386,7 +403,7 @@ public class TaskServiceImpl implements TaskService {
             task.setDifficulty(number);
         } else {
             // Inform the user that the priority must be within the allowed range of 0 to 7
-            return languageController.getMessage(
+            return languageManager.getMessage(
                     String.format("error.set.priority.out-of-range.%s", language),
                     language);
         }
@@ -400,7 +417,7 @@ public class TaskServiceImpl implements TaskService {
         Message userMessage = update.getMessage();
         // checking if user's message has text, since he can send a picture of document
         if (!userMessage.hasText()) {
-            return languageController.getMessage(
+            return languageManager.getMessage(
                     String.format("error.set.priority.no-text.%s", language),
                     language);
         }
@@ -468,7 +485,7 @@ public class TaskServiceImpl implements TaskService {
             case "NAME" -> {
                 task.setState("EDITING_NAME");
                 String text = String.format(
-                        languageController.getMessage(
+                        languageManager.getMessage(
                                 String.format("edit.name.%s", language),
                                 language),
                         task.getName());
@@ -482,7 +499,7 @@ public class TaskServiceImpl implements TaskService {
             case "DESC" -> {
                 task.setState("EDITING_DESCRIPTION");
                 String text = String.format(
-                        languageController.getMessage(
+                        languageManager.getMessage(
                                 String.format("edit.description.%s", language),
                                 language),
                         task.getName());
@@ -496,7 +513,7 @@ public class TaskServiceImpl implements TaskService {
             case "DATE" -> {
                 task.setState("EDITING_DATE");
                 String text = String.format(
-                        languageController.getMessage(
+                        languageManager.getMessage(
                                 String.format("edit.date.%s", language),
                                 language),
                         task.getName());
@@ -511,7 +528,7 @@ public class TaskServiceImpl implements TaskService {
             case "PRIOR" -> {
                 task.setState("EDITING_PRIORITY");
                 String text = String.format(
-                        languageController.getMessage(
+                        languageManager.getMessage(
                                 String.format("edit.priority.%s", language),
                                 language),
                         task.getName());
@@ -526,7 +543,7 @@ public class TaskServiceImpl implements TaskService {
             case "DIFF" -> {
                 task.setState("EDITING_DIFFICULTY");
                 String text = String.format(
-                        languageController.getMessage(
+                        languageManager.getMessage(
                                 String.format("edit.difficulty.%s", language),
                                 language),
                         task.getName());
@@ -541,7 +558,7 @@ public class TaskServiceImpl implements TaskService {
             case "TAG" -> {
                 task.setState("EDITING_TAG");
                 String text = String.format(
-                        languageController.getMessage(
+                        languageManager.getMessage(
                                 String.format("edit.tag.%s", language),
                                 language),
                         task.getName());
@@ -579,7 +596,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format(languageController.getMessage(
+                    answer.setText(String.format(languageManager.getMessage(
                             String.format("edit.finish.name.%s", language),
                             language), msgText));
                     task.setState("COMPLETED");
@@ -591,7 +608,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format(languageController.getMessage(
+                    answer.setText(String.format(languageManager.getMessage(
                                     String.format("edit.finish.description.%s", language),
                                     language),
                             task.getName(),
@@ -605,7 +622,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format(languageController.getMessage(
+                    answer.setText(String.format(languageManager.getMessage(
                                     String.format("edit.finish.date.%s", language),
                                     language),
                             task.getName(),
@@ -619,7 +636,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format(languageController.getMessage(
+                    answer.setText(String.format(languageManager.getMessage(
                                     String.format("edit.finish.priority.%s", language),
                                     language),
                             task.getName(),
@@ -633,7 +650,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format(languageController.getMessage(
+                    answer.setText(String.format(languageManager.getMessage(
                                     String.format("edit.finish.difficulty.%s", language),
                                     language),
                             task.getName(),
@@ -647,7 +664,7 @@ public class TaskServiceImpl implements TaskService {
                 if (answerText != null) {
                     answer.setText(answerText);
                 } else {
-                    answer.setText(String.format(languageController.getMessage(
+                    answer.setText(String.format(languageManager.getMessage(
                                     String.format("edit.finish.tag.%s", language),
                                     language),
                             task.getName(),
@@ -674,7 +691,7 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
 
         return messageUtils.generateSendMessage(update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("task.delete.all-completed-confirm.%s", language),
                         language),
                 markup);
@@ -687,7 +704,7 @@ public class TaskServiceImpl implements TaskService {
         taskRepository.deleteAllCompletedTasks(user.getId());
 
         return messageUtils.generateEditMessage(update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("task.delete.all-completed.%s", language),
                         language)
         );
@@ -704,7 +721,7 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
 
         return messageUtils.generateSendMessage(update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("task.delete.all.%s", language),
                         language),
                 markup);
@@ -717,7 +734,7 @@ public class TaskServiceImpl implements TaskService {
         taskRepository.deleteAllTasks(user.getId());
 
         return messageUtils.generateEditMessage(update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("task.delete.all-confirm.%s", language),
                         language));
     }
@@ -766,7 +783,7 @@ public class TaskServiceImpl implements TaskService {
 
         log.trace("callbackData: " + Arrays.toString(callbackData));
 
-        String text = languageController.getMessage(
+        String text = languageManager.getMessage(
                 String.format("keyboard.tasks.detail.complete.%s", language),
                 language);
 
@@ -883,27 +900,27 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardButton prevButton = new InlineKeyboardButton("<");
         InlineKeyboardButton nextButton = new InlineKeyboardButton(">");
         InlineKeyboardButton completeButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.detail.complete.%s", language),
                         language)
         );
         InlineKeyboardButton notCompletedButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.detail.uncomplete.%s", language),
                         language)
         );
         InlineKeyboardButton editButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.detail.edit.%s", language),
                         language)
         );
         InlineKeyboardButton deleteButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.detail.delete.%s", language),
                         language)
         );
         InlineKeyboardButton backButton = new InlineKeyboardButton(
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("keyboard.tasks.detail.back.%s", language),
                         language)
         );
@@ -977,7 +994,7 @@ public class TaskServiceImpl implements TaskService {
         if (pagesAndMarkup == null) {
             return messageUtils.generateSendMessage(
                     update,
-                    languageController.getMessage(
+                    languageManager.getMessage(
                             String.format("error.no-tasks.%s", language),
                             language)
             );
@@ -994,7 +1011,7 @@ public class TaskServiceImpl implements TaskService {
         User user = userUtils.getUserByUpdate(update);
         String language = user.getLanguage();
         return messageUtils.generateSendMessage(update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("task.other.tags.%s", language),
                         language),
                 markupUtils.getTagsInlineMarkup(update, 0));
@@ -1015,7 +1032,7 @@ public class TaskServiceImpl implements TaskService {
         String language = user.getLanguage();
 
         return messageUtils.generateEditMessage(update,
-                languageController.getMessage(
+                languageManager.getMessage(
                         String.format("task.other.tags.%s", language),
                         language),
                 markupUtils.getTagsInlineMarkup(update, pageIndex));
@@ -1042,7 +1059,7 @@ public class TaskServiceImpl implements TaskService {
 
         // handle case if user doesn't have any tasks yet (user can remove the task, so he could still have 0 tasks)
         if (pagesAndMarkup == null) {
-            String text = languageController.getMessage(
+            String text = languageManager.getMessage(
                     String.format("error.no-tasks.%s", language),
                     language);
             return messageUtils.generateEditMessage(update, text);
@@ -1102,7 +1119,7 @@ public class TaskServiceImpl implements TaskService {
 
                 if (pageNumber == 0 && hasUncompletedTasks) {
                     pages[pageNumber] = pages[pageNumber].concat(
-                                    languageController.getMessage(String.format("task.other.uncompleted.%s", language),
+                                    languageManager.getMessage(String.format("task.other.uncompleted.%s", language),
                                             language))
                             .concat("\n\n");
                 }
@@ -1113,27 +1130,18 @@ public class TaskServiceImpl implements TaskService {
                 noCompletedFlowYet = false;
 
                 pages[pageNumber] = pages[pageNumber].concat(
-                                languageController.getMessage(String.format("task.other.completed.%s", language),
+                                languageManager.getMessage(String.format("task.other.completed.%s", language),
                                         language))
                         .concat("\n\n");
             }
             // get current task
             Task task = tasks.get(i);
 
-            // get task name for a button, and limit it only to 24 characters
-            String taskName = task.getName();
-            if (taskName.length() > 64) {
-                taskName = taskName.substring(0, 61).concat("...");
-            }
 
             // set up button for current task
-            InlineKeyboardButton currentButton;
+            InlineKeyboardButton currentButton = new InlineKeyboardButton();
 
-            if (task.getStatus().equals("Completed")) {
-                currentButton = new InlineKeyboardButton("✅ ".concat(taskName));
-            } else {
-                currentButton = new InlineKeyboardButton("❌ ".concat(taskName));
-            }
+            currentButton.setText(createTaskButtonLabel(task));
             currentButton.setCallbackData(String.format("%s/TASK/%d/%d/TASK", operation, pageNumber, taskNumber));
 
             if (pageNumber == pageIndex) {
@@ -1180,6 +1188,20 @@ public class TaskServiceImpl implements TaskService {
         Map<String[], InlineKeyboardMarkup> map = new HashMap<>();
         map.put(pages, markup);
         return map;
+    }
+
+    private String createTaskButtonLabel(Task task) {
+        // Business logic for creating the label for a task button
+        String taskName = task.getName();
+        if (taskName.length() > 64) {
+            taskName = taskName.substring(0, 61).concat("...");
+        }
+
+        if (task.getStatus().equals("Completed")) {
+            return "✅ ".concat(taskName);
+        } else {
+            return "❌ ".concat(taskName);
+        }
     }
 
     private List<Task> getTasks(User user, String operation) {

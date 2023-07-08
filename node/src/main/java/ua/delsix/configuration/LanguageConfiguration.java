@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.core.io.ClassPathResource;
-import ua.delsix.controller.LanguageController;
+import ua.delsix.manager.LanguageManager;
 
 @Configuration
 public class LanguageConfiguration {
@@ -23,7 +23,7 @@ public class LanguageConfiguration {
     }
 
     @Bean
-    public LanguageController languageManager(MessageSource messageSource) {
-        return new LanguageController(messageSource);
+    public LanguageManager languageManager(MessageSource messageSource) {
+        return new LanguageManager(messageSource);
     }
 }

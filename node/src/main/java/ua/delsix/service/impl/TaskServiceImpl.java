@@ -72,7 +72,7 @@ public class TaskServiceImpl implements TaskService {
         taskRepository.save(newTask);
 
         // sending answerMessage to MainService
-        return messageUtils.sendMessageGenerator(
+        return messageUtils.generateSendMessage(
                 update,
                 languageController.getMessage(
                         String.format("create.start.%s", languageCode),
@@ -82,7 +82,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public SendMessage processCreatingTask(Update update) {
-        SendMessage answerMessage = messageUtils.sendMessageGenerator(update, "");
+        SendMessage answerMessage = messageUtils.generateSendMessage(update, "");
         User user = userUtils.getUserByUpdate(update);
         // get user's preferred language
         String languageCode = user.getLanguage();
@@ -452,7 +452,7 @@ public class TaskServiceImpl implements TaskService {
             return null;
         }
 
-        return messageUtils.editMessageGenerator(
+        return messageUtils.generateEditMessage(
                 update,
                 taskUtils.taskToStringInDetail(taskToEdit, user),
                 markupUtils.getEditMarkup(callbackData, operation, update));
@@ -474,7 +474,7 @@ public class TaskServiceImpl implements TaskService {
                         task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        messageUtils.sendMessageGenerator(
+                        messageUtils.generateSendMessage(
                                 update,
                                 text),
                         update);
@@ -488,7 +488,7 @@ public class TaskServiceImpl implements TaskService {
                         task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        messageUtils.sendMessageGenerator(
+                        messageUtils.generateSendMessage(
                                 update,
                                 text),
                         update);
@@ -502,7 +502,7 @@ public class TaskServiceImpl implements TaskService {
                         task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        messageUtils.sendMessageGenerator(
+                        messageUtils.generateSendMessage(
                                 update,
                                 text,
                                 markupUtils.getDateMarkupWithoutSkipCancelFinish(update)),
@@ -517,7 +517,7 @@ public class TaskServiceImpl implements TaskService {
                         task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        messageUtils.sendMessageGenerator(
+                        messageUtils.generateSendMessage(
                                 update,
                                 text,
                                 markupUtils.getPriorityMarkupWithoutSkipCancelFinish(update)),
@@ -532,7 +532,7 @@ public class TaskServiceImpl implements TaskService {
                         task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        messageUtils.sendMessageGenerator(
+                        messageUtils.generateSendMessage(
                                 update,
                                 text,
                                 markupUtils.getDifficultyMarkupWithoutSkipCancelFinish(update)),
@@ -547,7 +547,7 @@ public class TaskServiceImpl implements TaskService {
                         task.getName());
                 log.trace("Sending answer to ProducerService");
                 producerService.produceAnswer(
-                        messageUtils.sendMessageGenerator(
+                        messageUtils.generateSendMessage(
                                 update,
                                 text,
                                 markupUtils.getTagsReplyMarkupWithoutCancelSkipFinish(update)),
@@ -568,7 +568,7 @@ public class TaskServiceImpl implements TaskService {
     public SendMessage editTask(Update update, Task task) {
         Message msg = update.getMessage();
         String msgText = msg.getText();
-        SendMessage answer = messageUtils.sendMessageGenerator(update, "");
+        SendMessage answer = messageUtils.generateSendMessage(update, "");
         String answerText;
         String language = userUtils.getUserByUpdate(update).getLanguage();
 
@@ -673,7 +673,7 @@ public class TaskServiceImpl implements TaskService {
         keyboard.add(confirmButton);
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
 
-        return messageUtils.sendMessageGenerator(update,
+        return messageUtils.generateSendMessage(update,
                 languageController.getMessage(
                         String.format("task.delete.all-completed-confirm.%s", language),
                         language),
@@ -686,7 +686,7 @@ public class TaskServiceImpl implements TaskService {
         String language = user.getLanguage();
         taskRepository.deleteAllCompletedTasks(user.getId());
 
-        return messageUtils.editMessageGenerator(update,
+        return messageUtils.generateEditMessage(update,
                 languageController.getMessage(
                         String.format("task.delete.all-completed.%s", language),
                         language)
@@ -703,7 +703,7 @@ public class TaskServiceImpl implements TaskService {
         keyboard.add(confirmButton);
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
 
-        return messageUtils.sendMessageGenerator(update,
+        return messageUtils.generateSendMessage(update,
                 languageController.getMessage(
                         String.format("task.delete.all.%s", language),
                         language),
@@ -716,7 +716,7 @@ public class TaskServiceImpl implements TaskService {
         String language = user.getLanguage();
         taskRepository.deleteAllTasks(user.getId());
 
-        return messageUtils.editMessageGenerator(update,
+        return messageUtils.generateEditMessage(update,
                 languageController.getMessage(
                         String.format("task.delete.all-confirm.%s", language),
                         language));
@@ -787,7 +787,7 @@ public class TaskServiceImpl implements TaskService {
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(keyboard);
 
-        return messageUtils.editMessageGenerator(update, text, markup);
+        return messageUtils.generateEditMessage(update, text, markup);
     }
 
     // GET methods
@@ -939,7 +939,7 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(keyboard);
 
-        return messageUtils.editMessageGenerator(update, taskUtils.taskToStringInDetail(task, user), markup);
+        return messageUtils.generateEditMessage(update, taskUtils.taskToStringInDetail(task, user), markup);
     }
 
     @Override
@@ -964,7 +964,7 @@ public class TaskServiceImpl implements TaskService {
         String[] pages = pagesAndMarkup.keySet().iterator().next();
         InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
 
-        return messageUtils.editMessageGenerator(update, pages[pageIndex], markup);
+        return messageUtils.generateEditMessage(update, pages[pageIndex], markup);
     }
 
     @Override
@@ -975,7 +975,7 @@ public class TaskServiceImpl implements TaskService {
 
         // handle case if user doesn't have any tasks yet
         if (pagesAndMarkup == null) {
-            return messageUtils.sendMessageGenerator(
+            return messageUtils.generateSendMessage(
                     update,
                     languageController.getMessage(
                             String.format("error.no-tasks.%s", language),
@@ -986,14 +986,14 @@ public class TaskServiceImpl implements TaskService {
         String[] pages = pagesAndMarkup.keySet().iterator().next();
         InlineKeyboardMarkup markup = pagesAndMarkup.values().iterator().next();
 
-        return messageUtils.sendMessageGenerator(update, pages[pageIndex], markup);
+        return messageUtils.generateSendMessage(update, pages[pageIndex], markup);
     }
 
     @Override
     public SendMessage processGetAllTags(Update update) {
         User user = userUtils.getUserByUpdate(update);
         String language = user.getLanguage();
-        return messageUtils.sendMessageGenerator(update,
+        return messageUtils.generateSendMessage(update,
                 languageController.getMessage(
                         String.format("task.other.tags.%s", language),
                         language),
@@ -1014,7 +1014,7 @@ public class TaskServiceImpl implements TaskService {
         User user = userUtils.getUserByUpdate(update);
         String language = user.getLanguage();
 
-        return messageUtils.editMessageGenerator(update,
+        return messageUtils.generateEditMessage(update,
                 languageController.getMessage(
                         String.format("task.other.tags.%s", language),
                         language),
@@ -1045,7 +1045,7 @@ public class TaskServiceImpl implements TaskService {
             String text = languageController.getMessage(
                     String.format("error.no-tasks.%s", language),
                     language);
-            return messageUtils.editMessageGenerator(update, text);
+            return messageUtils.generateEditMessage(update, text);
         }
 
         String[] pages = pagesAndMarkup.keySet().iterator().next();
@@ -1055,7 +1055,7 @@ public class TaskServiceImpl implements TaskService {
             pageIndex = pages.length - 1;
         }
 
-        return messageUtils.editMessageGenerator(update, pages[pageIndex], markup);
+        return messageUtils.generateEditMessage(update, pages[pageIndex], markup);
     }
 
     private Map<String[], InlineKeyboardMarkup> getTasksTextAndMarkup(Update update, int pageIndex, String operation) {

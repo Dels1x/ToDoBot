@@ -67,7 +67,7 @@ public class MainServiceImpl implements MainService {
     private void processCallbackQuery(Update update) {
         String[] callbackData = CallbackQueryUtils.getCallbackData(update);
         String operation = callbackData[0];
-        EditMessageText answer = messageUtils.editMessageGenerator(update, "Unknown error");
+        EditMessageText answer = messageUtils.generateEditMessage(update, "Unknown error");
 
         log.trace("CallbackData: " + Arrays.toString(callbackData));
 
@@ -82,7 +82,7 @@ public class MainServiceImpl implements MainService {
 
         if (answer == null) {
             log.error("answer is null");
-            answer = messageUtils.editMessageGenerator(update, "Unknown error");
+            answer = messageUtils.generateErrorEditMessage(update);
         }
 
         producerService.produceAnswer(answer);
@@ -103,7 +103,7 @@ public class MainServiceImpl implements MainService {
         }
 
         log.error("Unexpected value: " + operation);
-        return null;
+        return messageUtils.generateErrorEditMessage(update);
     }
 
     private EditMessageText processDeleteOperation(Update update) {
@@ -121,7 +121,7 @@ public class MainServiceImpl implements MainService {
         }
 
         log.error("Unexpected value: " + operation);
-        return null;
+        return messageUtils.generateErrorEditMessage(update);
     }
 
     private EditMessageText processGetOperation(Update update) {
@@ -130,11 +130,11 @@ public class MainServiceImpl implements MainService {
 
         if (operation.equals("GET_TAGS")) {
             return processGetTagsOperation(update);
-        } else if (operation.equals("GET_TASKS")) {
+        } else if (operation.equals("GET_TASKS") || operation.startsWith("GET_BY_TAG")) {
             return processGetTasksOperation(update);
         } else {
             log.error("Unexpected value: " + operation);
-            return null;
+            return messageUtils.generateErrorEditMessage(update);
         }
     }
 
@@ -148,7 +148,7 @@ public class MainServiceImpl implements MainService {
             case "TASK" -> taskService.processGetTaskInDetail(update, operation);
             default -> {
                 log.error("Unexpected value: " + subOperation);
-                yield null;
+                yield messageUtils.generateErrorEditMessage(update);
             }
         };
     }
@@ -161,7 +161,7 @@ public class MainServiceImpl implements MainService {
 
     private SendMessage processUserMessage(Update update, ServiceCommand userCommand) {
         String answerText = "";
-        SendMessage answerMessage = messageUtils.sendMessageGenerator(update, "");
+        SendMessage answerMessage = messageUtils.generateSendMessage(update, "");
         User user = userUtils.getUserByUpdate(update);
         String language = user.getLanguage();
 

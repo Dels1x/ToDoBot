@@ -32,7 +32,7 @@ public class SettingsServiceImpl implements SettingsService {
     public SendMessage getSettings(Update update) {
         String language = userUtils.getUserByUpdate(update).getLanguage();
 
-        return messageUtils.sendMessageGenerator(
+        return messageUtils.generateSendMessage(
                 update,
                 languageController.getMessage(
                         String.format("settings.name.%s", language),
@@ -45,7 +45,7 @@ public class SettingsServiceImpl implements SettingsService {
     public EditMessageText processLanguage(Update update) {
         String language = userUtils.getUserByUpdate(update).getLanguage();
 
-        return messageUtils.editMessageGenerator(
+        return messageUtils.generateEditMessage(
                 update,
                 languageController.getMessage(
                         String.format("keyboard.settings.language.%s", language),
@@ -68,7 +68,7 @@ public class SettingsServiceImpl implements SettingsService {
         userUtils.setLanguage(update, languageCode);
 
         producerService.produceAnswer(
-                messageUtils.sendMessageGenerator(
+                messageUtils.generateSendMessage(
                 update,
                 languageController.getMessage(
                         String.format("keyboard.settings.set.%s", languageCode),

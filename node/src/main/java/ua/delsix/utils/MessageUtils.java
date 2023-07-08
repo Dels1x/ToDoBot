@@ -10,7 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 
 @Component
 public class MessageUtils {
-    public SendMessage sendMessageGenerator(Update update, String text) {
+    public SendMessage generateSendMessage(Update update, String text) {
         Message message;
 
         if(update.hasCallbackQuery()) {
@@ -29,7 +29,7 @@ public class MessageUtils {
         return sendMessage;
     }
 
-    public SendMessage sendMessageGenerator(Update update, String text, ReplyKeyboard markup) {
+    public SendMessage generateSendMessage(Update update, String text, ReplyKeyboard markup) {
         Message message;
 
         if(update.hasCallbackQuery()) {
@@ -48,7 +48,7 @@ public class MessageUtils {
         return sendMessage;
     }
 
-    public EditMessageText editMessageGenerator(Update update, String text) {
+    public EditMessageText generateEditMessage(Update update, String text) {
         var message = update.getCallbackQuery().getMessage();
         EditMessageText editMessage = new EditMessageText();
         editMessage.setMessageId(message.getMessageId());
@@ -59,7 +59,7 @@ public class MessageUtils {
         return editMessage;
     }
 
-    public EditMessageText editMessageGenerator(Update update, String text, InlineKeyboardMarkup markup) {
+    public EditMessageText generateEditMessage(Update update, String text, InlineKeyboardMarkup markup) {
         var message = update.getCallbackQuery().getMessage();
         EditMessageText editMessage = new EditMessageText();
         editMessage.setMessageId(message.getMessageId());
@@ -69,5 +69,13 @@ public class MessageUtils {
         editMessage.enableMarkdown(true);
 
         return editMessage;
+    }
+
+    public EditMessageText generateErrorEditMessage(Update update) {
+        return generateEditMessage(update, "Unknown error");
+    }
+
+    public SendMessage generateErrorSendMessage(Update update) {
+        return generateSendMessage(update, "Unknown error");
     }
 }

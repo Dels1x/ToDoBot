@@ -416,7 +416,6 @@ public class MarkupUtils {
         KeyboardRow row2 = new KeyboardRow();
         KeyboardRow row3 = new KeyboardRow();
         KeyboardRow row4 = new KeyboardRow();
-        KeyboardRow row5 = new KeyboardRow();
 
         row2.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.no-difficulty.%s", language),
@@ -424,22 +423,22 @@ public class MarkupUtils {
         row2.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.very-easy.%s", language),
                 language));
-        row3.add(languageManager.getMessage(
+        row2.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.easy.%s", language),
                 language));
         row3.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.moderate.%s", language),
                 language));
-        row4.add(languageManager.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.challenging.%s", language),
                 language));
-        row4.add(languageManager.getMessage(
+        row3.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.difficult.%s", language),
                 language));
-        row5.add(languageManager.getMessage(
+        row4.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.very-difficult.%s", language),
                 language));
-        row5.add(languageManager.getMessage(
+        row4.add(languageManager.getMessage(
                 String.format("keyboard.difficulty.extremely-difficult.%s", language),
                 language));
 
@@ -447,7 +446,6 @@ public class MarkupUtils {
         keyboard.add(row2);
         keyboard.add(row3);
         keyboard.add(row4);
-        keyboard.add(row5);
 
         return new ReplyKeyboardMarkup(keyboard);
     }

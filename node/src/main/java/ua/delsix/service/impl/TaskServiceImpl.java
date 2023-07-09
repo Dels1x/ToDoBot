@@ -687,7 +687,11 @@ public class TaskServiceImpl implements TaskService {
         String language = userUtils.getUserByUpdate(update).getLanguage();
         // setting up keyboard
         List<InlineKeyboardButton> keyboard = new ArrayList<>();
-        InlineKeyboardButton confirmButton = new InlineKeyboardButton("Confirm");
+        InlineKeyboardButton confirmButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                        String.format("confirm.%s", language),
+                        language)
+        );
         confirmButton.setCallbackData("DELETE_ALL_COMPLETED/CONFIRM");
         keyboard.add(confirmButton);
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
@@ -717,7 +721,10 @@ public class TaskServiceImpl implements TaskService {
         String language = userUtils.getUserByUpdate(update).getLanguage();
         // setting up keyboard
         List<InlineKeyboardButton> keyboard = new ArrayList<>();
-        InlineKeyboardButton confirmButton = new InlineKeyboardButton("Confirm");
+        InlineKeyboardButton confirmButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                String.format("confirm.%s", language),
+                language));
         confirmButton.setCallbackData("DELETE_ALL/CONFIRM");
         keyboard.add(confirmButton);
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup(Collections.singletonList(keyboard));
@@ -793,8 +800,16 @@ public class TaskServiceImpl implements TaskService {
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
         List<InlineKeyboardButton> buttons = new ArrayList<>();
 
-        InlineKeyboardButton confirmButton = new InlineKeyboardButton("Confirm");
-        InlineKeyboardButton cancelButton = new InlineKeyboardButton("Cancel");
+        InlineKeyboardButton confirmButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                        String.format("confirm.%s", language),
+                        language)
+        );
+        InlineKeyboardButton cancelButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                        String.format("cancel.%s", language),
+                        language)
+        );
 
         confirmButton.setCallbackData(String.format("%s/TASK/%d/%d/DELETE", operation, pageIndex, pageTaskIndex));
         cancelButton.setCallbackData(String.format("%s/TASK/%d/%d/TASK", operation, pageIndex, pageTaskIndex));

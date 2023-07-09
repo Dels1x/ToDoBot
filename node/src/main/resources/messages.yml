@@ -626,3 +626,11 @@ date:
     en: in
     ru: через
     ua: через
+confirm:
+  en: Confirm
+  ru: Подтвердить
+  ua: Підтвердити
+cancel:
+  en: Cancel
+  ru: Отменить
+  ua: Відминити

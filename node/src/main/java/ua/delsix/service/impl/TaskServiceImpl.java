@@ -479,7 +479,8 @@ public class TaskServiceImpl implements TaskService {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String[] callbackData = callbackQuery.getData().split("/");
 
-        String language = userUtils.getUserByUpdate(update).getLanguage();
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
 
         switch (callbackData[5]) {
             case "NAME" -> {
@@ -587,7 +588,8 @@ public class TaskServiceImpl implements TaskService {
         String msgText = msg.getText();
         SendMessage answer = messageUtils.generateSendMessage(update, "");
         String answerText;
-        String language = userUtils.getUserByUpdate(update).getLanguage();
+        User user = userUtils.getUserByUpdate(update);
+        String language = user.getLanguage();
 
         switch (task.getState()) {
             case "EDITING_NAME" -> {
@@ -640,7 +642,7 @@ public class TaskServiceImpl implements TaskService {
                                     String.format("edit.finish.priority.%s", language),
                                     language),
                             task.getName(),
-                            taskUtils.getPriorityDescription(task.getPriority())));
+                            taskUtils.getPriorityDescription(user, task.getPriority())));
                     task.setState("COMPLETED");
                 }
             }
@@ -654,7 +656,7 @@ public class TaskServiceImpl implements TaskService {
                                     String.format("edit.finish.difficulty.%s", language),
                                     language),
                             task.getName(),
-                            taskUtils.getDifficultyDescription(task.getDifficulty())));
+                            taskUtils.getDifficultyDescription(user, task.getDifficulty())));
                     task.setState("COMPLETED");
                 }
             }
@@ -1156,7 +1158,7 @@ public class TaskServiceImpl implements TaskService {
                 }
             }
 
-            pages[pageNumber] = pages[pageNumber].concat(taskUtils.taskToString(task) + "\n\n");
+            pages[pageNumber] = pages[pageNumber].concat(taskUtils.taskToString(user, task) + "\n\n");
             taskNumber++;
         }
 

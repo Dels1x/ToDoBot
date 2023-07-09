@@ -18,41 +18,71 @@ public class TaskUtils {
         this.languageManager = languageManager;
     }
 
-    public String getDifficultyDescription(Integer diff) {
+    public String getDifficultyDescription(User user, Integer diff) {
         if (diff == null) {
             return "❌";
         }
+        String language = user.getLanguage();
 
         return switch (diff) {
-            case 0 -> "No difficulty";
-            case 1 -> "Very easy";
-            case 2 -> "Easy";
-            case 3 -> "Moderate";
-            case 4 -> "Challenging";
-            case 5 -> "Difficult";
-            case 6 -> "Very difficult";
-            case 7 -> "Extremely difficult";
+            case 0 -> languageManager.getMessage(
+                    String.format("keyboard.difficulty.no-difficulty.%s", language),
+                    language);
+            case 1 -> languageManager.getMessage(
+                    String.format("keyboard.difficulty.very-easy.%s", language),
+                    language);
+            case 2 -> languageManager.getMessage(
+                    String.format("keyboard.difficulty.easy.%s", language),
+                    language);
+            case 3 -> languageManager.getMessage(
+                    String.format("keyboard.difficulty.moderate.%s", language),
+                    language);
+            case 4 -> languageManager.getMessage(
+                    String.format("keyboard.difficulty.challenging.%s", language),
+                    language);
+            case 5 -> languageManager.getMessage(
+                    String.format("keyboard.difficulty.difficult.%s", language),
+                    language);
+            case 6 -> languageManager.getMessage(
+                    String.format("keyboard.difficulty.very-difficult.%s", language),
+                    language);
+            case 7 -> languageManager.getMessage(
+                    String.format("keyboard.difficulty.extremely-difficult.%s", language),
+                    language);
             default -> "❌";
         };
     }
 
-    public String getPriorityDescription(Integer priority) {
+    public String getPriorityDescription(User user, Integer priority) {
         if (priority == null) {
             return "❌";
         }
+        String language = user.getLanguage();
 
         return switch (priority) {
-            case 1 -> "Not important";
-            case 2 -> "Low";
-            case 3 -> "Medium";
-            case 4 -> "High";
-            case 5 -> "Very high";
-            case 6 -> "Extremely high";
+            case 1 -> languageManager.getMessage(
+                    String.format("keyboard.priority.not-important.%s", language),
+                    language);
+            case 2 -> languageManager.getMessage(
+                    String.format("keyboard.priority.low.%s", language),
+                    language);
+            case 3 -> languageManager.getMessage(
+                    String.format("keyboard.priority.medium.%s", language),
+                    language);
+            case 4 -> languageManager.getMessage(
+                    String.format("keyboard.priority.high.%s", language),
+                    language);
+            case 5 -> languageManager.getMessage(
+                    String.format("keyboard.priority.very-high.%s", language),
+                    language);
+            case 6 -> languageManager.getMessage(
+                    String.format("keyboard.priority.extremely-high.%s", language),
+                    language);
             default -> "❌";
         };
     }
 
-    public String taskToString(Task task) {
+    public String taskToString(User user, Task task) {
         return String.format("""
                         ✏️ *%s*
                         💬 - _%s_
@@ -64,10 +94,10 @@ public class TaskUtils {
                         task.getDescription(),
                 task.getTargetDate() == null ? "" :
                         String.format("📅 %s ", task.getTargetDate()),
-                getPriorityDescription(task.getPriority()).equals("❌") ? "" :
-                        String.format("⭐️️ %s ", getPriorityDescription(task.getPriority())),
-                getDifficultyDescription(task.getDifficulty()).equals("❌") ? "" :
-                        String.format("⚡️ %s ", getDifficultyDescription(task.getDifficulty())),
+                getPriorityDescription(user, task.getPriority()).equals("❌") ? "" :
+                        String.format("⭐️️ %s ", getPriorityDescription(user, task.getPriority())),
+                getDifficultyDescription(user, task.getDifficulty()).equals("❌") ? "" :
+                        String.format("⚡️ %s ", getDifficultyDescription(user, task.getDifficulty())),
                 task.getTag() == null ? "Untagged" :
                         task.getTag());
     }
@@ -81,8 +111,8 @@ public class TaskUtils {
                 task.getName() == null ? "❌" : task.getName(),
                 task.getDescription() == null ? "❌" : task.getDescription(),
                 task.getTargetDate() == null ? "❌" : task.getTargetDate().toString(),
-                getPriorityDescription(task.getPriority()),
-                getDifficultyDescription(task.getDifficulty()),
+                getPriorityDescription(user, task.getPriority()),
+                getDifficultyDescription(user, task.getDifficulty()),
                 task.getTag() == null ? "Untagged" : task.getTag(),
                 task.getCreatedAt().toString(),
                 task.getStatus() == null ? "❌" :

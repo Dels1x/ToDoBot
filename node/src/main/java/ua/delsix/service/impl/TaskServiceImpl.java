@@ -24,6 +24,7 @@ import ua.delsix.utils.TaskUtils;
 import ua.delsix.utils.UserUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -40,6 +41,8 @@ public class TaskServiceImpl implements TaskService {
     private final LanguageManager languageManager;
     private final ProducerService producerService;
     private static final int TASK_PER_PAGE = 4;
+
+
 
     public TaskServiceImpl(MessageUtils messageUtils, MarkupUtils markupUtils, UserUtils userUtils, TaskRepository taskRepository, UserRepository userRepository, TaskUtils taskUtils, LanguageManager languageManager, ProducerService producerService) {
         this.messageUtils = messageUtils;
@@ -1228,7 +1231,10 @@ public class TaskServiceImpl implements TaskService {
                 return taskRepository.findAll(user.getId());
             }
             case "GET_TODAY_TASKS" -> {
-                return taskRepository.findAllTasksDatedForToday(user.getId(), LocalDate.now());
+                LocalDateTime rightNow = LocalDateTime.now();
+                LocalDate adjustedToday = rightNow.minusHours(2).toLocalDate();
+
+                return taskRepository.findAllTasksDatedForToday(user.getId(), adjustedToday);
             }
             case "GET_COMPLETED_TASKS" -> {
                 return taskRepository.findAllCompletedTasks(user.getId());

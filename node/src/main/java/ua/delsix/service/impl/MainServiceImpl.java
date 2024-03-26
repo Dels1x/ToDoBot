@@ -142,7 +142,14 @@ public class MainServiceImpl implements MainService {
 
         return switch (subOperation) {
             case "NEXT", "PREV" -> taskService.processGetAllTasksUpdate(update, operation, subOperation);
-            case "TASK" -> taskService.processGetTaskInDetail(update, operation);
+            case "TASK" -> {
+                if (callbackData.length == 6) {
+                    taskService.processGetTaskInDetail(update, operation);
+                    update.setCallbackQuery(CallbackQueryUtils.getTaskEditCancelCallBackQuery(update));
+                }
+
+                yield taskService.processGetTaskInDetail(update, operation);
+            }
             default -> {
                 log.error("Unexpected value: " + subOperation);
                 yield messageUtils.generateErrorEditMessage(update);

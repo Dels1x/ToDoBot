@@ -466,9 +466,12 @@ public class TaskServiceImpl implements TaskService {
         // calling editTask method, if callbackData presses any edit button and return null to MainService
         if (callbackData.length == 6) {
             if (taskSwitchStateToEdit(taskToEdit, update)) {
+                log.info("return processGetTaskInDetail");
+
                 return processGetTaskInDetail(update, operation);
             }
 
+            log.info("return null");
             return null;
         }
 

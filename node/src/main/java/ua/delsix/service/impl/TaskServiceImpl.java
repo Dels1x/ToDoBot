@@ -455,7 +455,7 @@ public class TaskServiceImpl implements TaskService {
         // get list of tasks
         List<Task> tasks = getTasks(user, operation);
 
-        if (tasks == null || tasks.size() == 0) {
+        if (tasks == null || tasks.isEmpty()) {
             log.error("tasks is null");
             return null;
         }
@@ -773,7 +773,7 @@ public class TaskServiceImpl implements TaskService {
         List<Task> tasks = getTasks(user, operation);
         log.trace(tasks);
 
-        if (tasks == null || tasks.size() == 0) {
+        if (tasks == null || tasks.isEmpty()) {
             log.error("tasks is null");
             return null;
         }
@@ -860,7 +860,7 @@ public class TaskServiceImpl implements TaskService {
 
         List<Task> tasks = getTasks(user, operation);
 
-        if (tasks == null || tasks.size() == 0) {
+        if (tasks == null || tasks.isEmpty()) {
             log.error("tasks is null");
             return null;
         }
@@ -903,14 +903,22 @@ public class TaskServiceImpl implements TaskService {
         Task task = tasks.get(taskIndex);
 
         // handle a button to complete a task
-        if (callbackData[4].equals("COMPLETE")) {
-            task.setStatus("Completed");
-            task.setCompletionDate(LocalDate.now());
-            taskRepository.save(task);
-        } else if (callbackData[4].equals("UNCOMPLETE")) {
-            task.setStatus("Uncompleted");
-            task.setCompletionDate(null);
-            taskRepository.save(task);
+        switch (callbackData[4]) {
+            case "COMPLETE" -> {
+                task.setStatus("Completed");
+                task.setCompletionDate(LocalDate.now());
+                taskRepository.save(task);
+            }
+            case "FAILED" -> {
+                task.setStatus("Failed");
+                task.setCompletionDate(LocalDate.now());
+                taskRepository.save(task);
+            }
+            case "UNCOMPLETE" -> {
+                task.setStatus("Uncompleted");
+                task.setCompletionDate(null);
+                taskRepository.save(task);
+            }
         }
 
         // setting up the keyboard
@@ -930,6 +938,11 @@ public class TaskServiceImpl implements TaskService {
         InlineKeyboardButton notCompletedButton = new InlineKeyboardButton(
                 languageManager.getMessage(
                         String.format("keyboard.tasks.detail.uncomplete.%s", language),
+                        language)
+        );
+        InlineKeyboardButton failedButton = new InlineKeyboardButton(
+                languageManager.getMessage(
+                        String.format("keyboard.tasks.detail.failed.%s", language),
                         language)
         );
         InlineKeyboardButton editButton = new InlineKeyboardButton(
@@ -958,6 +971,9 @@ public class TaskServiceImpl implements TaskService {
             prevNextButtons.add(nextButton);
         }
         if (task.getStatus().equals("Completed")) {
+            failedButton.setCallbackData(String.format("%s/TASK/%d/%d/FAILED", operation, pageIndex, pageTaskIndex));
+            configurationButtons.add(failedButton);
+        } else if (task.getStatus().equals("Failed")) {
             notCompletedButton.setCallbackData(String.format("%s/TASK/%d/%d/UNCOMPLETE", operation, pageIndex, pageTaskIndex));
             configurationButtons.add(notCompletedButton);
         } else {
@@ -1121,7 +1137,7 @@ public class TaskServiceImpl implements TaskService {
 
         List<Task> tasks = getTasks(user, operation);
 
-        if (tasks == null || tasks.size() == 0) {
+        if (tasks == null || tasks.isEmpty()) {
             log.error("tasks is null");
             return null;
         }

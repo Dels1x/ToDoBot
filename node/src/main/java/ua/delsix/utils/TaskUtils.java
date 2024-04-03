@@ -116,7 +116,8 @@ public class TaskUtils {
                 task.getTag() == null ? "Untagged" : task.getTag(),
                 task.getCreatedAt().toString(),
                 task.getStatus() == null ? "❌" :
-                        task.getStatus().equals("Completed") ? "✅" : "❌",
+                        task.getStatus().equals("Completed") ? "✅" :
+                                task.getStatus().equals("Failed") ? "\uD83D\uDC94" : "❌",
                 task.getCompletionDate() == null ? "" :
                        languageManager.getMessage(
                                String.format("task.detail.completed-at.%s", language),

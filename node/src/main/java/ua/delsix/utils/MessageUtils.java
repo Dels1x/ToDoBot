@@ -74,8 +74,4 @@ public class MessageUtils {
     public EditMessageText generateErrorEditMessage(Update update) {
         return generateEditMessage(update, "Unknown error");
     }
-
-    public SendMessage generateErrorSendMessage(Update update) {
-        return generateSendMessage(update, "Unknown error");
-    }
 }
